@@ -3,6 +3,6 @@
 public interface IProviderService
 {
     string MakeCharacteristics();
-    string MakeSystemFormulaString();
-    string MakeLaTexDetFormulaString();
+    string GetSystemFormulaString();
+    string GetLaTexDetFormulaString();
 }

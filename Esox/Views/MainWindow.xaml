@@ -4,11 +4,16 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:hc="https://handyorg.github.io/handycontrol"
+        xmlns:local="clr-namespace:Esox.ViewModels"
         xmlns:fc="clr-namespace:WpfMath.Controls;assembly=WpfMath"
+        Background="{DynamicResource RegionBrush}"
         mc:Ignorable="d"
         hc:Theme.Skin="Dark"
         Title="Esox Window" 
-        Height="500" Width="900">
+        Height="600" Width="900">
+    <Window.DataContext>
+        <local:MainWindowViewModel/>
+    </Window.DataContext>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="300"/> <!-- Панель параметров -->
@@ -39,8 +44,9 @@
                             Margin="0 0 0 5" 
                             Opacity="0.8"/>
                         <hc:NumericUpDown
-                            Maximum="10"
-                            Minimum="2"/>
+                            Value="{Binding MainSystemOrdinal}"
+                            Minimum="2"
+                            Maximum="10"/>
                     </StackPanel>
                 
                     <!-- Тип матрицы -->
@@ -48,24 +54,47 @@
                         HorizontalAlignment="Left">
                         <Label
                             BorderBrush="{DynamicResource RegionBrush}"
-                            Content="Решения системы" 
+                            Content="Характеристики системы" 
                             Opacity="0.8"/>
                         <StackPanel>
-                            <RadioButton
+                            <CheckBox
+                                IsChecked="{Binding ConsistentSystem}"
+                                Content="Совместная"
+                                Width="150"
+                                Margin="5"/>
+                            <CheckBox
+                                IsEnabled="{Binding AllowHomogenousSystem}"
+                                IsChecked="{Binding HomogenousSystem}"
                                 Margin="5"
                                 Width="150"
-                                Content="Множество"/>
-                            <RadioButton 
-                                Content="Единственное"
+                                Content="Однородная"/>
+                            <CheckBox
+                                IsEnabled="{Binding AllowDegenerativeSystem}"
+                                IsChecked="{Binding DegenerativeSystem}"
+                                Content="Вырожденная"
                                 Margin="5"
                                 Width="150"/>
                         </StackPanel>
                     </StackPanel>
-                    
+                    <StackPanel
+                        HorizontalAlignment="Left">
+                        <Label
+                            Content="Решения системы"
+                            Opacity="0.8"/>
+                        <StackPanel>
+                            <CheckBox
+                                BorderBrush="{DynamicResource RegionBrush}"
+                                Content="Единственное"
+                                IsEnabled="{Binding AllowSolutionCharacteristics}"
+                                IsChecked="{Binding SingleSystemResult}"
+                                Margin="5"
+                                Width="150"/>
+                        </StackPanel>
+                    </StackPanel>
                     <!-- Кнопка -->
-                    <Button 
-                        x:Name="GenerateBtn"
-                        Content="Сгенерировать"
+                    <Button
+                        Content="Создать"
+                        Command="{Binding MakeCommand}"
                         Style="{StaticResource ButtonPrimary}" 
                         Margin="0 20 0 0" Height="35"/>
                 </StackPanel>
@@ -79,35 +108,26 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Панель действий -->
-            <StackPanel
-                Grid.Row="0" 
-                Orientation="Horizontal" 
-                HorizontalAlignment="Right" 
-                Margin="10">
-                <Button 
-                    Content="Копировать" 
-                    Style="{StaticResource ButtonSuccess}" 
-                    Margin="0 0 5 0"/>
-                <Button 
-                    Content="Очистить" 
-                    Style="{StaticResource ButtonDanger}"/>
-            </StackPanel>
-
             <!-- Область вывода -->
-            <hc:Card 
+            <hc:Card
+                BorderBrush="{DynamicResource RegionBrush}"
                 Grid.Row="1" 
-                Margin="10">
-                <ScrollViewer>
+                Margin="10,10,30,30">
+                <ScrollViewer
+                    Visibility="{Binding Visibility}"
+                    BorderBrush="{DynamicResource RegionBrush}"
+                    Background="{DynamicResource RegionBrush}">
                     <!-- Разделы области вывода -->
                     <StackPanel>
                         <!--FormulaView Система линейных уравнений -->
-                        <fc:FormulaControl/>
+                        <fc:FormulaControl
+                            Formula="{Binding MainSystemFormulaString}"/>
                         <StackPanel>
                             <Label
                                 Content="Дополнительная информация"
                                 BorderBrush="{DynamicResource RegionBrush}"/>
-                            <fc:FormulaControl/>
+                            <fc:FormulaControl
+                                Formula="{Binding DetSystemFormulaString}"/>
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
