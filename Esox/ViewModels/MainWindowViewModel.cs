@@ -5,7 +5,7 @@ using Esox.Services;
 using Esox.Views;
 using Microsoft.Xaml.Behaviors.Core;
 
-namespace Esox.Views.ViewModels;
+namespace Esox.ViewModels;
 
 public class MainWindowViewModel : NotifyPropertyChanged
 {
@@ -175,19 +175,17 @@ public class MainWindowViewModel : NotifyPropertyChanged
         {
             MakeSingleSolution = SingleSystemResult,
             MakeHomogenousInstance = HomogenousSystem,
-            MakeDegenerativeInstance = DegenerativeSystem,
+            MakeDegenerateInstance = DegenerativeSystem,
             Ordinal = MainSystemOrdinal
         };
-        IProviderService method = MethodFactory.MakeMethodProvider(requirements);
-        if (method is KramerMethodProvider kramer)
+        IProvider method = MethodFactory.MakeMethodProvider(requirements);
+        
+        ComputesPage = new LatexReportView
         {
-            ComputesPage = new KramerView()
-            {
-                DataContext = new KramerViewModel(
-                    kramer.KramerMethodModel!.MainSystemFormula!,
-                    kramer.KramerMethodModel!.MainSystemSolutionFormula!)
-            };
-        }
+            DataContext = new LatexReportViewModel(
+                method.Model.MainSystemFormula!,
+                method.Model.MainSystemSolutionFormula!)
+        };
 
         Visibility = Visibility.Visible;
     }

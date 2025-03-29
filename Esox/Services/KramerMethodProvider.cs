@@ -1,18 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
-using System.Windows.Media.Animation;
-using Esox.Views.Models;
+using Esox.Models;
 using Esox.Views.Types;
 using Matrix = Esox.Views.Types.Matrix;
 
 namespace Esox.Services;
 
-public class KramerMethodProvider : IProviderService
+public class KramerMethodProvider : IProvider
 {
     private int _ordinal;
     private List<Fraction> _determinantCollection;
@@ -60,7 +56,7 @@ public class KramerMethodProvider : IProviderService
     }
     
     private string? _characteristics;
-    private KramerMethodModel? _model;
+    private CommonMethodComputingModel? _model;
     /// <summary>
     /// Возвращает заглавную букву матрицы
     /// системы линейных уравнений.
@@ -74,24 +70,10 @@ public class KramerMethodProvider : IProviderService
         return _characteristics;
     }
     /// <summary>
-    /// Собирает LaTeX формулу системы линейных уравнений.
+    /// Содержит модель задания и решения
     /// </summary>
-    /// <returns>
-    /// Строку, содержащую разметку системы
-    /// линейных алгебраических уравнений
-    /// </returns>
-    public string GetSystemFormulaString()
-    {
-        return _model.MainSystemFormula;
-    }
-
-    public string GetLaTexDetFormulaString()
-    {
-        return _model.MainSystemSolutionFormula;
-    }
-
-    public KramerMethodModel? KramerMethodModel => 
-        _model;
+    public CommonMethodComputingModel Model => 
+        _model!;
     
     /// <summary>
     /// Создает и решает систему линейных алгебраических уравнений
@@ -106,7 +88,7 @@ public class KramerMethodProvider : IProviderService
         
         // initialize main-system markup
         int n = constants.Length;
-        KramerMethodModel model = new()
+        CommonMethodComputingModel computingModel = new()
         {
             MainSystemFormula = MakeLatexSystemEquation(coefficients, constants),
             MainSystemSolutionFormula = MakeLatexDeterminant(coefficients, $"\\det{{{_characteristics}}}"),
@@ -116,14 +98,14 @@ public class KramerMethodProvider : IProviderService
         for (int i = 0; i < n; i++)
         {
             int[,] modifiedMatrix = ReplaceColumn(coefficients, constants, i);
-            model.MainSystemSolutionFormula += 
+            computingModel.MainSystemSolutionFormula += 
                 MakeLatexDeterminant(modifiedMatrix, $"\\det{{{_characteristics}_{i + 1}}}");
         }
         
         // collect results
-        model.MainSystemSolutionFormula += MakeKramerResults();
+        computingModel.MainSystemSolutionFormula += MakeKramerResults();
 
-        _model = model;
+        _model = computingModel;
     }
     
     /// <summary>
@@ -175,12 +157,17 @@ public class KramerMethodProvider : IProviderService
         
         sb.Remove(sb.Length - 2, 2);
         sb.Append(@"} = ");
+        
         // build result
         double result = Task.Run(() => Matrix.DeterminantI32Async(matrix)).Result;
         if (result == 0)
+        {
+            _model.MainSystemSolutionFormula = string.Empty;
+            _model.MainSystemFormula = string.Empty;
             _ = GenerateKramerModelAsync(_ordinal);
-
+        }
         Fraction detF = new(result);
+        
         if (detF.Denomerator != 1)
             sb.Append(@$"\frac{{{detF.Enumerator}}}{{{detF.Denomerator}}}");
         else
