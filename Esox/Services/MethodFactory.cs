@@ -15,8 +15,9 @@ public static class MethodFactory
     public static IProviderService MakeMethodProvider(Requirements reqs)
     {
         if (reqs.MakeSingleSolution && !reqs.MakeDegenerativeInstance)
-            return new KramerMethodProvider(reqs.Ordinal, reqs.MakeHomogenousInstance);
+            return new KramerMethodProvider(reqs.Ordinal);
 
+        
         throw new NotImplementedException();
     }
 }

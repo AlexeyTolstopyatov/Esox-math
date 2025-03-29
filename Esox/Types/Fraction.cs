@@ -3,11 +3,17 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading.Tasks;
 
-namespace Esox.Services;
+namespace Esox.Views.Types;
 
 public class Fraction
 {
+    /// <summary>
+    /// Числитель
+    /// </summary>
     public double Enumerator { get; private set; }
+    /// <summary>
+    /// Знаменатель
+    /// </summary>
     public double Denomerator { get; private set; }
     public Fraction(double floating64)
     {
@@ -19,7 +25,7 @@ public class Fraction
         return Math.Abs(Math.Floor(x) - x) < 0.001; // терпимость...
     }
 
-    (double n, double d) GetBinaryCoefficient(double x) {
+    private (double n, double d) GetBinaryCoefficient(double x) {
         // n / d == x
         double n = x;
         double d = 1;
@@ -31,7 +37,7 @@ public class Fraction
         return (n, d);
     }
 
-    double[] ContinuedFraction(double n, double d) 
+    private double[] ContinuedFraction(double n, double d) 
     {
         var f = new List<double>();
         while (d != 0) {
@@ -41,7 +47,7 @@ public class Fraction
         return f.ToArray();
     }
 
-    (double n, double d) GetCoefficient(double x) 
+    private (double n, double d) GetCoefficient(double x) 
     {
         double[] f = ContinuedFraction(x, 1);
 

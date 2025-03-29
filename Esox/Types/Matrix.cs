@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
-namespace Esox.Services;
+namespace Esox.Views.Types;
 
 /// <summary>
 /// Представляет возможности рассчета операций для
@@ -34,7 +34,11 @@ public static class Matrix
         }
         return determinant;
     }
-
+    /// <summary>
+    /// Синхронно счититает определитель матрицы
+    /// </summary>
+    /// <param name="matrix"></param>
+    /// <returns></returns>
     public static double DeterminantI32(int[,] matrix)
     {
         int rows = matrix.GetLength(0);
@@ -52,14 +56,24 @@ public static class Matrix
         
         return DeterminantF64(result);
     }
-
+    /// <summary>
+    /// Асинхронно считает определитель матрицы
+    /// для целочисленных матриц
+    /// </summary>
+    /// <param name="matrix"></param>
+    /// <returns></returns>
     public static async Task<double> DeterminantI32Async(int[,] matrix)
     {
         double det = await Task.Run(() => DeterminantI32(matrix));
         return det;
     }
-    
-    public static async Task<double> DeterminantFAsync(double[,] matrix)
+    /// <summary>
+    /// Асинхронно считает определитель
+    /// для матриц с элементами <see cref="double"/>
+    /// </summary>
+    /// <param name="matrix"></param>
+    /// <returns></returns>
+    public static async Task<double> DeterminantF64Async(double[,] matrix)
     {
         int n = matrix.GetLength(0);
         if (n <= 2) return DeterminantF64(matrix);

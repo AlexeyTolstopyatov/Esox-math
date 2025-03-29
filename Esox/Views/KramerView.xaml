@@ -1,0 +1,29 @@
+﻿<Page x:Class="Esox.Views.KramerView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:fc="clr-namespace:WpfMath.Controls;assembly=WpfMath"
+      xmlns:local="clr-namespace:Esox.Views.ViewModels"
+      mc:Ignorable="d"
+      Background="{DynamicResource RegionBrush}"
+      Title="KramerView" 
+      Height="Auto" Width="Auto">
+    <Page.DataContext>
+        <local:KramerViewModel/>
+    </Page.DataContext>
+    <Grid>
+        <StackPanel>
+            <fc:FormulaControl
+                Foreground="{DynamicResource PrimaryTextBrush}"
+                Formula="{Binding MainSystemFormula}"/>
+            <Label
+                Margin="10"
+                BorderBrush="{DynamicResource RegionBrush}"
+                Content="Рассчеты программы"/>
+            <fc:FormulaControl
+                Foreground="{DynamicResource PrimaryTextBrush}"
+                Formula="{Binding ComputesFormulas}"/>
+        </StackPanel>
+    </Grid>
+</Page>

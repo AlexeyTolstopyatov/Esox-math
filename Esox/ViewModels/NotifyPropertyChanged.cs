@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace Esox.ViewModels;
+namespace Esox.Views.ViewModels;
 
 public class NotifyPropertyChanged : INotifyPropertyChanged
 {

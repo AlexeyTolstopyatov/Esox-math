@@ -1,10 +1,10 @@
-﻿<hc:Window x:Class="Esox.MainWindow"
+﻿<hc:Window x:Class="Esox.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:hc="https://handyorg.github.io/handycontrol"
-        xmlns:local="clr-namespace:Esox.ViewModels"
+        xmlns:local="clr-namespace:Esox.Views.ViewModels"
         xmlns:fc="clr-namespace:WpfMath.Controls;assembly=WpfMath"
         Background="{DynamicResource RegionBrush}"
         mc:Ignorable="d"
@@ -79,6 +79,7 @@
                     <StackPanel
                         HorizontalAlignment="Left">
                         <Label
+                            BorderBrush="{DynamicResource RegionBrush}"
                             Content="Решения системы"
                             Opacity="0.8"/>
                         <StackPanel>
@@ -112,24 +113,14 @@
             <hc:Card
                 BorderBrush="{DynamicResource RegionBrush}"
                 Grid.Row="1" 
-                Margin="10,10,30,30">
+                Margin="10,30,30,30">
                 <ScrollViewer
                     Visibility="{Binding Visibility}"
                     BorderBrush="{DynamicResource RegionBrush}"
                     Background="{DynamicResource RegionBrush}">
                     <!-- Разделы области вывода -->
-                    <StackPanel>
-                        <!--FormulaView Система линейных уравнений -->
-                        <fc:FormulaControl
-                            Formula="{Binding MainSystemFormulaString}"/>
-                        <StackPanel>
-                            <Label
-                                Content="Дополнительная информация"
-                                BorderBrush="{DynamicResource RegionBrush}"/>
-                            <fc:FormulaControl
-                                Formula="{Binding DetSystemFormulaString}"/>
-                        </StackPanel>
-                    </StackPanel>
+                    <Frame
+                        Content="{Binding ComputesPage}"/>
                 </ScrollViewer>
             </hc:Card>
         </Grid>

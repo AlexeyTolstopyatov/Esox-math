@@ -1,9 +1,11 @@
 ﻿using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using Esox.Services;
+using Esox.Views;
 using Microsoft.Xaml.Behaviors.Core;
 
-namespace Esox.ViewModels;
+namespace Esox.Views.ViewModels;
 
 public class MainWindowViewModel : NotifyPropertyChanged
 {
@@ -19,7 +21,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
     private string? _detSystemFormulaString;
     private Visibility _visibility;
     // Основная панель -> дополнительная информация
-    
+    private Page _computesPage;
 
     // Левая панель -> Уточнения для задания матрицы
     private int _mainSystemOrdinal;
@@ -35,6 +37,13 @@ public class MainWindowViewModel : NotifyPropertyChanged
     #endregion
     
     #region View Bingings
+
+    public Page ComputesPage
+    {
+        get => _computesPage;
+        set => SetField(ref _computesPage, value);
+    }
+
     /// <summary>
     /// Система линейных уравнений должна иметь только одно решение
     /// (пересечение всех плоскостей только в одной точке)
@@ -172,8 +181,12 @@ public class MainWindowViewModel : NotifyPropertyChanged
         IProviderService method = MethodFactory.MakeMethodProvider(requirements);
         if (method is KramerMethodProvider kramer)
         {
-            MainSystemFormulaString = kramer.KramerMethodModel!.MainSystemFormula;
-            DetSystemFormulaString = kramer.KramerMethodModel.MainSystemSolutionFormula;
+            ComputesPage = new KramerView()
+            {
+                DataContext = new KramerViewModel(
+                    kramer.KramerMethodModel!.MainSystemFormula!,
+                    kramer.KramerMethodModel!.MainSystemSolutionFormula!)
+            };
         }
 
         Visibility = Visibility.Visible;

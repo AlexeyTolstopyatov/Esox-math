@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace Esox.Models;
+namespace Esox.Views.Models;
 
 public class KramerMethodModel
 {
