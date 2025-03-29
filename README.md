@@ -6,6 +6,12 @@ Esox генерирует и решает системы линейных алг
 ### Снимки экрана
 Акцент и темная тема:
 
+<img src="Screenshots/kramer dark.png" height="300">
+
+Акцент и светлая тема
+
+<img src="Screenshots/kramer white.png" height="300">
+
 ### [Описание алгоритмов](INSIDE.md)
 Постепенно будет описываться в [здесь](INSIDE.md), или переедет в новый каталог
 с численными методами.
@@ -13,12 +19,6 @@ Esox генерирует и решает системы линейных алг
 ### [Проблемы](PROBLEM.md)
 Ужасы при динамическом тестировании и мои логические ошибки
 [здесь](PROBLEM.md).
-
-<img src="Screenshots/kramer dark.png" height="300">
-
-Акцент и светлая тема
-
-<img src="Screenshots/kramer white.png" height="300">
 
 # Используется
  - [WpfMath](https://github.com/nevgeny/wpf-math) - Элемент управления окна для WPF приложений, который рисует разметку `LaTeX`
