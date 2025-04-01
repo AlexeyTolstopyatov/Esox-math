@@ -12,6 +12,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
     public MainWindowViewModel()
     {
         _visibility = Visibility.Hidden;
+        _makerMode = LinearCastMaker.Triangle;
         _makeCommand = new ActionCommand(Make);
     }
     
@@ -26,18 +27,25 @@ public class MainWindowViewModel : NotifyPropertyChanged
     // Левая панель -> Уточнения для задания матрицы
     private int _mainSystemOrdinal;
     private bool _homogenousSystem;
-    private bool _degenerativeSystem;
+    private bool _singularSystem;
     private bool _consistentSystem;
     private bool _singleSystemResult;
     // Левая панель -> Установка ограничений
     private bool _allowHomogenousSystem;
     private bool _allowDegenerativeSystem;
     private bool _allowSolutionCharacteristics;
+    // Левая панель -> Установка режима генерации
+    private LinearCastMaker _makerMode;
     
     #endregion
     
     #region View Bingings
-
+    
+    public LinearCastMaker MakerMode
+    {
+        get => _makerMode;
+        set => SetField(ref _makerMode, value);
+    }
     public Page ComputesPage
     {
         get => _computesPage;
@@ -94,8 +102,8 @@ public class MainWindowViewModel : NotifyPropertyChanged
     /// </summary>
     public bool DegenerativeSystem
     {
-        get => _degenerativeSystem;
-        set => SetField(ref _degenerativeSystem, value);
+        get => _singularSystem;
+        set => SetField(ref _singularSystem, value);
     }
     /// <summary>
     /// Совместная система линейных уравнений
@@ -175,8 +183,9 @@ public class MainWindowViewModel : NotifyPropertyChanged
         {
             MakeSingleSolution = SingleSystemResult,
             MakeHomogenousInstance = HomogenousSystem,
-            MakeDegenerateInstance = DegenerativeSystem,
-            Ordinal = MainSystemOrdinal
+            MakeSingularInstance = DegenerativeSystem,
+            Ordinal = MainSystemOrdinal,
+            MakerType = MakerMode
         };
         IProvider method = MethodFactory.MakeMethodProvider(requirements);
         

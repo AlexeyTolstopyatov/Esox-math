@@ -8,21 +8,20 @@ public static class MethodFactory
     {
         public int Ordinal;
         public bool MakeSingleSolution;
-        public bool MakeDegenerateInstance;
+        public bool MakeSingularInstance;
         public bool MakeHomogenousInstance;
+        public LinearCastMaker MakerType;
     }
     
     public static IProvider MakeMethodProvider(Requirements reqs)
     {
-        if (reqs.MakeSingleSolution && !reqs.MakeDegenerateInstance)
+        if (reqs.MakeSingleSolution && !reqs.MakeSingularInstance)
             return new KramerMethodProvider(reqs.Ordinal);
 
-        if (reqs.MakeDegenerateInstance)
-            return new LinearCastingMethodProvider(
-                reqs.Ordinal,
-                reqs.MakeDegenerateInstance,
-                reqs.MakeHomogenousInstance);
-        
-        throw new NotImplementedException();
+        return new LinearCastingMethodProvider(
+            reqs.Ordinal,
+            reqs.MakeSingularInstance,
+            reqs.MakeHomogenousInstance,
+            reqs.MakerType);
     }
 }

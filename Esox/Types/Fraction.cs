@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading.Tasks;
 
-namespace Esox.Views.Types;
+namespace Esox.Types;
 
+/// <summary>
+/// Внимание, числитель и знаменатель
+/// дроби сокращаются при вычислении обыкновенной дроби
+/// </summary>
 public class Fraction
 {
     /// <summary>
@@ -25,7 +29,13 @@ public class Fraction
         return Math.Abs(Math.Floor(x) - x) < 0.001; // терпимость...
     }
 
-    private (double n, double d) GetBinaryCoefficient(double x) {
+    /// <summary>
+    /// Создает обыкновенную дробь кратную двум
+    /// (сокращает результат на наибольший общий делитель)
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    private (double n, double d) GetDoubledCoefficient(double x) {
         // n / d == x
         double n = x;
         double d = 1;
@@ -37,6 +47,12 @@ public class Fraction
         return (n, d);
     }
 
+    /// <summary>
+    /// Переводит обыкновенную дробь в десятичную бесконечную
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="d"></param>
+    /// <returns></returns>
     private double[] ContinuedFraction(double n, double d) 
     {
         var f = new List<double>();
@@ -47,6 +63,12 @@ public class Fraction
         return f.ToArray();
     }
 
+    /// <summary>
+    /// Вычисляет обыкновенную дробь на основе
+    /// десятичной. Сокращает на наибольший общий делитель
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
     private (double n, double d) GetCoefficient(double x) 
     {
         double[] f = ContinuedFraction(x, 1);
@@ -57,10 +79,26 @@ public class Fraction
             for (int j = i - 1; j >= 0; --j) {
                 (n, d) = (f[j] * n + d, n);
             }
-            if (n / d == x) {
-                return (n, d);
+            if (Math.Abs(n / d - x) < 0.00001) {
+                
+                return (
+                    n / GlobalDivisor(n, d),
+                    d / GlobalDivisor(n, d));
             }
         }
-        return GetBinaryCoefficient(x);
+        return GetDoubledCoefficient(x);
     }
+    
+    /// <summary>
+    /// Наибольший общий делитель для элементов
+    /// дроби
+    /// </summary>
+    /// <param name="x"></param>
+    /// <param name="y"></param>
+    /// <returns></returns>
+    private double GlobalDivisor(double x, double y)
+    {
+        return y == 0 ? x : GlobalDivisor(y, x % y);
+    }
+
 }

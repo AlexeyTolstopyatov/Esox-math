@@ -5,7 +5,6 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:hc="https://handyorg.github.io/handycontrol"
         xmlns:local="clr-namespace:Esox.ViewModels"
-        xmlns:fc="clr-namespace:WpfMath.Controls;assembly=WpfMath"
         Background="{DynamicResource RegionBrush}"
         mc:Ignorable="d"
         Title="Esox Window" 
@@ -52,6 +51,7 @@
                     <StackPanel
                         HorizontalAlignment="Left">
                         <Label
+                            HorizontalAlignment="Stretch"
                             BorderBrush="{DynamicResource RegionBrush}"
                             Content="Характеристики системы" 
                             Opacity="0.8"/>
@@ -78,6 +78,7 @@
                     <StackPanel
                         HorizontalAlignment="Left">
                         <Label
+                            HorizontalAlignment="Left"
                             BorderBrush="{DynamicResource RegionBrush}"
                             Content="Решения системы"
                             Opacity="0.8"/>
@@ -89,6 +90,24 @@
                                 IsChecked="{Binding SingleSystemResult}"
                                 Margin="5"
                                 Width="150"/>
+                        </StackPanel>
+                    </StackPanel>
+                    
+                    <StackPanel
+                        HorizontalAlignment="Left">
+                        <Label
+                            HorizontalAlignment="Left"
+                            Opacity="0.8"
+                            Content="Тип создателя матрицы"
+                            BorderBrush="{DynamicResource RegionBrush}"/>
+                        <StackPanel>
+                            <ComboBox
+                                Width="250"
+                                Margin="5"
+                                SelectedIndex="{Binding MakerMode}">
+                                <ComboBoxItem Content="Метод Ортогонализации"/>
+                                <ComboBoxItem Content="Метод Треугольных матриц"/>
+                            </ComboBox>
                         </StackPanel>
                     </StackPanel>
                     <!-- Кнопка -->

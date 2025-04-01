@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Esox.Models;
-using Esox.Views.Types;
+using Esox.Types;
 using Matrix = Esox.Views.Types.Matrix;
 
 namespace Esox.Services;
@@ -99,7 +99,7 @@ public class KramerMethodProvider : IProvider
         {
             int[,] modifiedMatrix = ReplaceColumn(coefficients, constants, i);
             computingModel.MainSystemSolutionFormula += 
-                MakeLatexDeterminant(modifiedMatrix, $"\\det{{{_characteristics}_{i + 1}}}");
+                MakeLatexDeterminant(modifiedMatrix, $"\\det{{{_characteristics}_{{{i + 1}}}");
         }
         
         // collect results
