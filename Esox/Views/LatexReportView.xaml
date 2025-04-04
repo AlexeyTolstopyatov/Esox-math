@@ -5,6 +5,7 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:fc="clr-namespace:WpfMath.Controls;assembly=WpfMath"
       xmlns:local="clr-namespace:Esox.ViewModels"
+      xmlns:hc="https://handyorg.github.io/handycontrol"
       mc:Ignorable="d"
       Background="{DynamicResource RegionBrush}"
       Title="LatexReportView" 

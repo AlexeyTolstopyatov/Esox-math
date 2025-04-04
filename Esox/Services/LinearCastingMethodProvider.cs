@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Esox.Models;
 using Esox.Types;
-using Esox.Views.Types;
 
 namespace Esox.Services;
 
@@ -28,7 +31,108 @@ public enum LinearCastMaker
 public class LinearCastingMethodProvider : IProvider
 {
     private CommonMethodComputingModel _model;
-    private string _characteristics; 
+    private string _characteristics;
+    
+    public LinearCastingMethodProvider(string matrixLatex)
+    {
+        _characteristics = MakeCharacteristics();
+        _model = new CommonMethodComputingModel
+        {
+            MainSystemFormula = matrixLatex
+        };
+
+        _ = Deserialize();
+    }
+
+    #region Parsing Systems
+
+    /// <summary>
+    /// Десериализует LATEX разметку матрицы системы
+    /// и записывает результаты в два массива
+    /// </summary>
+    /// <returns></returns>
+    private async Task<(double[,], double[])> Deserialize()
+    {
+        return await Task.Run(() =>
+        {
+            // убрать окружение матрицы (\begin{...} \end{...})
+            string cleaned = Regex
+                .Replace(
+                _model.MainSystemFormula!, 
+                @"\\begin\{.*?\}|\\end\{.*?\}|\s+", 
+                "");
+            string[] rows = Regex
+                .Split(cleaned, @"\\") // "\\)"
+                .Where(x => !string.IsNullOrEmpty(x))
+                .ToArray();
+            
+            _model.MainSystemFormula = cleaned;
+            
+            if (rows.Length == 0)
+                throw new ArgumentException("Неверный формат матрицы");
+
+            // строки -> элементы
+            List<string[]> elements = rows
+                .Select(row => 
+                    Regex
+                        .Split(row, @"(?<!\\)&") // Игнорировать &
+                        .Select(x => x.Replace(@"\&", "&")) // Восстановить &
+                        .ToArray())
+                .ToList();
+
+            // размерность матрицы
+            int rowCount = elements.Count;
+            int colCount = elements[0].Length;
+            
+            // согласованность размеров
+            if (elements.Any(r => r.Length != colCount))
+                throw new ArgumentException("Несовместные измерения");
+
+            // массивы для результатов
+            double[,] matrix = new double[rowCount, colCount - 1];
+            double[] freeTerms = new double[rowCount];
+
+            for (int i = 0; i < rowCount; i++)
+            {
+                // Парсинг свободных членов
+                if (!TryParseLatexNumber(elements[i][^1], out freeTerms[i]))
+                    throw new FormatException($"Неверный формат числа: {elements[i][^1]}");
+
+                // Парсинг основной матрицы
+                for (int j = 0; j < colCount - 1; j++)
+                {
+                    if (!TryParseLatexNumber(elements[i][j], out matrix[i, j]))
+                        throw new FormatException($"Неверный формат: {elements[i][j]}");
+                }
+                
+            }
+            return (matrix, freeTerms);
+        });
+    }
+    /// <summary>
+    /// Пробует прочесть и записать коэффициент из LATEX
+    /// разметки.
+    /// </summary>
+    /// <param name="input"></param>
+    /// <param name="result"></param>
+    /// <returns></returns>
+    private bool TryParseLatexNumber(string input, out double result)
+    {
+        // LaTeX-специфичные форматы чисел
+        input = input
+            .Replace(",", "")
+            .Replace(" ", "")
+            .Replace(@"\times", "e")
+            .Replace("cdot", "e")
+            .Replace("^", "e");
+
+        return double.TryParse(input, 
+            System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, 
+            out result);
+    }
+    
+    #endregion
     
     public LinearCastingMethodProvider(int ordinal, bool degenerate, bool homogenous, LinearCastMaker maker)
     {
@@ -45,11 +149,9 @@ public class LinearCastingMethodProvider : IProvider
         _extendedMatrix = new double[ordinal, ordinal + 1];
         _solution = new();
 
-        (double[,], double[]) tupleNd;
-
-        tupleNd = maker == LinearCastMaker.Orthogonal 
+        (double[,], double[]) tupleNd = (maker == LinearCastMaker.Orthogonal) 
             ? MakeOrthogonalMatrix(ordinal) 
-            : MakeNonSingularMatrix(ordinal, Random.Shared);
+            : MakeNonSingularMatrix(ordinal, new Random());
         
         MakeExtendedSystem(tupleNd.Item1, tupleNd.Item2);
         MakeExtendedSystemSolutions(out string s, ordinal);
@@ -221,9 +323,9 @@ public class LinearCastingMethodProvider : IProvider
         {
             for (int j = i; j < n; j++)
             {
-                matrix[i, j] = rand.Next(-30, 30);
+                matrix[i, j] = rand.Next(-10, 10);
             }
-            matrix[i, i] = (rand.Next(-30, 30) == 0) 
+            matrix[i, i] = (rand.Next(-10, 10) == 0) 
                 ? 1 
                 : -1; // гарантия ненулевого элемента
         }
@@ -233,7 +335,7 @@ public class LinearCastingMethodProvider : IProvider
         {
             for (int j = i + 1; j < n; j++)
             {
-                double factor = rand.Next(-30, 30);
+                double factor = rand.Next(-10, 10);
                 for (int k = 0; k < n; k++)
                 {
                     matrix[j, k] += factor * matrix[i, k];
@@ -245,7 +347,7 @@ public class LinearCastingMethodProvider : IProvider
 
         for (int i = 0; i < n; ++i)
         {
-            freed[i] = Random.Shared.Next(-30, 30);
+            freed[i] = Random.Shared.Next(-10, 10);
         }
         
         return (matrix, freed);
@@ -264,7 +366,7 @@ public class LinearCastingMethodProvider : IProvider
             // случайный вектор
             for (int j = 0; j < n; j++)
             {
-                matrix[i, j] = Random.Shared.Next(-30, 30);
+                matrix[i, j] = Random.Shared.Next(-10, 10);
             }
 
             // Ортогонализация относительно предыдущих строк
@@ -294,7 +396,7 @@ public class LinearCastingMethodProvider : IProvider
 
         for (int i = 0; i < n; ++i)
         {
-            freed[i] = Random.Shared.Next(-30, 30);
+            freed[i] = Random.Shared.Next(-10, 10);
         }
         
         return (matrix, freed);
@@ -358,7 +460,7 @@ public class LinearCastingMethodProvider : IProvider
         {
             // Выбор ведущего элемента
             int freed = FindFreeRow(i, limits);
-            if (Math.Abs(_extendedMatrix[freed, i]) < 1e-10)
+            if (Math.Abs(_extendedMatrix[freed, i]) < 1e-3)
                 throw new InvalidOperationException("Матрица вырождена");
 
             if (freed != i)

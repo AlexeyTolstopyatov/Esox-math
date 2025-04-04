@@ -13,6 +13,12 @@ public static class MethodFactory
         public LinearCastMaker MakerType;
     }
     
+    /// <summary>
+    /// Создает <see cref="IProvider"/> на основе
+    /// переданных параметров.
+    /// </summary>
+    /// <param name="reqs"></param>
+    /// <returns></returns>
     public static IProvider MakeMethodProvider(Requirements reqs)
     {
         if (reqs.MakeSingleSolution && !reqs.MakeSingularInstance)
@@ -23,5 +29,16 @@ public static class MethodFactory
             reqs.MakeSingularInstance,
             reqs.MakeHomogenousInstance,
             reqs.MakerType);
+    }
+
+    /// <summary>
+    /// Создает <see cref="IProvider"/> на основе
+    /// разметки Latex.
+    /// </summary>
+    /// <param name="latex"></param>
+    /// <returns></returns>
+    public static IProvider MakeMethodProvider(string latex)
+    {
+        return new LinearCastingMethodProvider(latex);
     }
 }

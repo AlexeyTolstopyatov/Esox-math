@@ -14,6 +14,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
         _visibility = Visibility.Hidden;
         _makerMode = LinearCastMaker.Triangle;
         _makeCommand = new ActionCommand(Make);
+        _fromLatexCommand = new ActionCommand(FromLatex);
     }
     
     #region Private Fields
@@ -129,27 +130,6 @@ public class MainWindowViewModel : NotifyPropertyChanged
         set => SetField(ref _visibility, value);
     }
     /// <summary>
-    /// Главная матрица системы. Передает LaTeX разметку
-    /// из <see cref="_mainSystemFormulaString"/>
-    /// </summary>
-    public string? MainSystemFormulaString
-    {
-        get => _mainSystemFormulaString;
-        set => SetField(ref _mainSystemFormulaString, value);
-    }
-    /// <summary>
-    /// Определитель главной матрицы системы
-    /// Я считаю, пусть это будет общими данными, независимо
-    /// от страницы решения линейной комбинации и просто
-    /// системы линейных алгебраических уравнений.
-    /// Передает LaTeX разметку из хранилища
-    /// </summary>
-    public string? DetSystemFormulaString
-    {
-        get => _detSystemFormulaString;
-        set => SetField(ref _detSystemFormulaString, value);
-    }
-    /// <summary>
     /// Порядок квадратной матрицы системы
     /// </summary>
     public int MainSystemOrdinal
@@ -163,20 +143,32 @@ public class MainWindowViewModel : NotifyPropertyChanged
     #region Pirvate Command storage
 
     private ICommand _makeCommand;
+    private ICommand _fromLatexCommand;
 
     #endregion
 
     #region View Command-Bindings
-    /// <summary>
-    /// Привязывается к кнопке "Создать"
-    /// </summary>
     public ICommand MakeCommand
     {
         get => _makeCommand;
         set => SetField(ref _makeCommand, value);
     }
+    public ICommand FromLatexCommand
+    {
+        get => _fromLatexCommand;
+        set => SetField(ref _fromLatexCommand, value);
+    }
     #endregion
 
+    private void FromLatex()
+    {
+        ComputesPage = new SystemMakerView()
+        {
+            DataContext = new SystemMakerViewModel()
+        };
+        
+        Visibility = Visibility.Visible;
+    }
     private void Make()
     {
         MethodFactory.Requirements requirements = new()

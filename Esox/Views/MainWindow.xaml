@@ -111,11 +111,20 @@
                         </StackPanel>
                     </StackPanel>
                     <!-- Кнопка -->
-                    <Button
-                        Width="100"
-                        Content="Создать"
-                        Command="{Binding MakeCommand}"
-                        Margin="0 20 0 0" Height="35"/>
+                    <StackPanel
+                        Orientation="Horizontal">
+                        <Button
+                            Width="100"
+                            Content="Создать"
+                            Command="{Binding MakeCommand}"
+                            Margin="0 20 0 0" Height="35"/>
+                        <Button
+                            Width="100"
+                            Content="Из LaTeX"
+                            Command="{Binding FromLatexCommand}"
+                            Margin="5,20,0,0"
+                            Height="35"/>
+                    </StackPanel>
                 </StackPanel>
             </ScrollViewer>
         </Border>
