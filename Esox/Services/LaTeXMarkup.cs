@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -11,12 +12,15 @@ public class LaTeXMarkup : ILaTexMarkup
     /// Создает имя объекта и предоставляет API
     /// для записи LaTeX разметки.
     /// </summary>
+    #pragma warning disable
     public LaTeXMarkup()
     {
         Name = MakeName();
     }
-
-    private string Name { get; set; }
+    #pragma warning restore
+    
+    public string Name { get; init; }
+    [Obsolete("Calls once when class initializes")]
     public string MakeName()
     {
         return Convert
@@ -24,7 +28,7 @@ public class LaTeXMarkup : ILaTexMarkup
             .ToString();
     }
 
-    public string MakeCases(int[,] common, int[] freed, [Optional] string otherName)
+    public string MakeCases(double[,] common, double[] freed, [Optional] string otherName)
     {
         StringBuilder sb = new();
         
@@ -45,7 +49,7 @@ public class LaTeXMarkup : ILaTexMarkup
         return sb.ToString();
     }
 
-    public string MakePMatrix(int[,] common, int[] freed, [Optional] string otherName)
+    public string MakePMatrix(double[,] common, double[] freed, [Optional] string otherName)
     {
         // build matrix
         StringBuilder sb = new();
@@ -54,7 +58,7 @@ public class LaTeXMarkup : ILaTexMarkup
         
         for (int i = 0; i < common.GetLength(0); i++)
         {
-            var row = new List<string>();
+            List<string> row = new();
             for (int j = 0; j < common.GetLength(1); j++)
             {
                 row.Add(FormatNumber(common[i, j]));
@@ -72,12 +76,12 @@ public class LaTeXMarkup : ILaTexMarkup
         throw new NotImplementedException();
     }
 
-    private string FormatNumber(int number)
+    private string FormatNumber(double number)
     {
-        return number.ToString();
+        return number.ToString(CultureInfo.InvariantCulture);
     }
     
-    private string FormatCoefficient(int value, int index)
+    private string FormatCoefficient(double value, int index)
     {
         if (value == 0) 
             return "";

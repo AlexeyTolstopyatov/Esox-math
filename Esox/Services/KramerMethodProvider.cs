@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Esox.Models;
@@ -9,70 +10,106 @@ namespace Esox.Services;
 
 public class KramerMethodProvider : IProvider
 {
-    private int _ordinal;
-    private List<Fraction> _determinantCollection;
-    public KramerMethodProvider(int ordinal)
-    {
-        _determinantCollection = new List<Fraction>();
-        _ = GenerateKramerModelAsync(ordinal);
-    }
+    private readonly int _ordinal;
+    private readonly List<Fraction> _determinantCollection;
+    private readonly LaTeXMarkup _writer;
 
-    private Task GenerateKramerModelAsync(int ordinal)
+    // public KramerMethodProvider(double[,] common, double[] freed)
+    // {
+    //     _determinantCollection = new();
+    //     _writer = new();
+    //     _model = new(); 
+    //     // solve it.
+    //     throw new NotImplementedException("Нет возможности решить матрицу системы");
+    // }
+    
+    public KramerMethodProvider(int ordinal, int min, int max)
     {
         _ordinal = ordinal;
-        GenerateKramerModel(GenerateMatrix(ordinal), GenerateVector(ordinal));
-        return Task.CompletedTask;
+        _determinantCollection = new();
+        _writer = new();
+        _model = new();
+        _ = GenerateKramerModelAsync(min, max);
     }
-    
-    /// <summary>
-    /// Создает вектор-столбец для расширяемой матрицы
-    /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
-    private int[] GenerateVector(int ordinal)
+    public KramerMethodProvider(int ordinal)
     {
-        int[] ev = new int[ordinal];
+        _ordinal = ordinal;
+        _determinantCollection = new List<Fraction>();
+        _writer = new();
+        _model = new();
+        _ = GenerateKramerModelAsync();
+    }
+    /// <summary>
+    /// Создает и решает систему линейных уравнений методом Крамера
+    /// </summary>
+    /// <returns></returns>
+    private async Task GenerateKramerModelAsync()
+    {
+        await Task.Run(() =>
+        {
+            GenerateKramerModel(
+                GenerateMatrix(), 
+                GenerateVector());
+        });
+    }
+
+    private async Task GenerateKramerModelAsync(int min, int max)
+    {
+        await Task.Run(() =>
+        {
+            GenerateKramerModel(
+                GenerateMatrix(min, max), 
+                GenerateVector(min, max));
+        });
+    }
+
+    /// <summary>
+    /// Создает вектор-столбец для расширяемой матрицы.
+    /// Значения минимума и максимума влияют на
+    /// диапозон псевдо-случайных чисел.
+    /// </summary>
+    /// <param name="min">минимальное значение</param>
+    /// <param name="max">максимальное значение</param>
+    /// <returns></returns>
+    private double[] GenerateVector([Optional] int min, [Optional] int max)
+    {
+        double[] ev = new double[_ordinal];
         
-        for (int i = 0; i < ordinal; ++i)
-            ev[i] = Random.Shared.Next(-30, 30);
+        for (int i = 0; i < _ordinal; ++i)
+            ev[i] = Random.Shared.Next(
+                min == 0 ? -30 : min, 
+                max == 0 ? 30 : max);
         
         return ev;
     }
+
     /// <summary>
-    /// создает общую матрицу системы
+    /// создает общую матрицу системы. Значения минимума и максимума влияют на
+    /// диапозон псевдо-случайных чисел
     /// </summary>
-    /// <param name="ordinal"></param>
+    /// <param name="min">минимальное значение</param>
+    /// <param name="max">максимальное значение</param>
     /// <returns></returns>
-    private int[,] GenerateMatrix(int ordinal)
+    private double[,] GenerateMatrix([Optional] int min, [Optional] int max)
     {
-        int[,] matrix = new int[ordinal, ordinal];
+        double[,] matrix = new double[_ordinal, _ordinal];
         
-        for (int i = 0; i < ordinal; ++i)
-            for(int j = 0; j < ordinal; ++j)
-                matrix[i,j] = Random.Shared.Next(-30, 30);
+        for (int i = 0; i < _ordinal; ++i)
+            for(int j = 0; j < _ordinal; ++j)
+                matrix[i,j] = Random.Shared.Next(
+                    min == 0 ? -30 : min,
+                    max == 0 ? +30 : max);
 
         return matrix;
     }
     
     private string? _characteristics;
-    private CommonMethodComputingModel? _model;
-    /// <summary>
-    /// Возвращает заглавную букву матрицы
-    /// системы линейных уравнений.
-    /// </summary>
-    /// <returns></returns>
-    public string MakeCharacteristics()
-    {
-        _characteristics = Convert
-            .ToChar(Random.Shared.Next(0x40, 0x5A))
-            .ToString();
-        return _characteristics;
-    }
+    private readonly CommonMethodComputingModel? _model;
     /// <summary>
     /// Содержит модель задания и решения
     /// </summary>
-    public CommonMethodComputingModel Model => 
-        _model!;
+    public CommonMethodComputingModel? Model => 
+        _model;
     
     /// <summary>
     /// Создает и решает систему линейных алгебраических уравнений
@@ -80,91 +117,59 @@ public class KramerMethodProvider : IProvider
     /// <returns>
     /// Возвращает модель решения методом Крамера
     /// </returns>
-    private void GenerateKramerModel(int[,] coefficients, int[] constants)
+    private void GenerateKramerModel(double[,] coefficients, double[] constants)
     {
         // initialize matrix word
-        MakeCharacteristics();
+        _characteristics = _writer.Name;
         
         // initialize main-system markup
-        int n = constants.Length;
-        CommonMethodComputingModel computingModel = new()
-        {
-            MainSystemFormula = MakeLatexSystemEquation(coefficients, constants),
-            MainSystemSolutionFormula = MakeLatexDeterminant(coefficients, $"\\det{{{_characteristics}}}"),
-        };
+        WriteSystemString(_writer.MakeCases(coefficients, constants));
+        WriteSolutionString(_writer.MakePMatrix(coefficients, constants));
+        WriteSolutionString(MakeLatexDeterminant(coefficients, $"\\det{{{_characteristics}}}"));
         
         // collect computes + initialize markup
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < constants.Length; i++)
         {
-            int[,] modifiedMatrix = ReplaceColumn(coefficients, constants, i);
-            computingModel.MainSystemSolutionFormula += 
-                MakeLatexDeterminant(modifiedMatrix, $"\\det{{{_characteristics}_{i + 1}}}");
+            double[,] modifiedMatrix = ReplaceColumn(coefficients, constants, i);
+            WriteSolutionString(MakeLatexDeterminant(modifiedMatrix, $"\\det{{{_characteristics}_{{{i + 1}}}}}"));
         }
         
         // collect results
-        computingModel.MainSystemSolutionFormula += MakeKramerResults();
+        WriteSolutionString(MakeKramerResults());
+    }
 
-        _model = computingModel;
+    private void WriteSolutionString(string markup)
+    {
+        _model!.MainSystemSolutionFormula += markup + @"\\";
+    }
+
+    private void WriteSystemString(string markup)
+    {
+        _model!.MainSystemFormula += markup + @"\\";
     }
     
     /// <summary>
-    /// Создает разметку системы линейных уравнений
-    /// </summary>
-    /// <param name="a">Матрица</param>
-    /// <param name="b">Матрица</param>
-    /// <returns></returns>
-    private string MakeLatexSystemEquation(int[,] a, int[] b)
-    {
-        StringBuilder sb = new();
-        // как указать систему линейных уравнений
-        sb.AppendLine($@"{_characteristics} = \cases{{");
-        
-        for (int i = 0; i < b.Length; i++)
-        {
-            var terms = new List<string>();
-            for (int j = 0; j < a.GetLength(1); j++)
-            {
-                terms.Add(FormatCoefficient(a[i, j], j + 1));
-            }
-            sb.AppendLine($"  {string.Join(" + ", terms).Replace("+ -", "- ")} = {FormatNumber(b[i])} \\\\");
-        }
-
-        sb.Append("}");
-        return sb.ToString();
-    }
-    /// <summary>
     /// Создает разметку детерминанта матрицы
     /// </summary>
-    /// <param name="matrix"></param>
-    /// <param name="label"></param>
+    /// <param name="matrix">Определитель основной матрицы</param>
+    /// <param name="label">Наименование</param>
     /// <returns></returns>
-    private string MakeLatexDeterminant(int[,] matrix, string label)
+    private string MakeLatexDeterminant(double[,] matrix, string label)
     {
-        // build matrix
         StringBuilder sb = new();
-        sb.Append(@$"{label} = \pmatrix{{");
-        
-        for (int i = 0; i < matrix.GetLength(0); i++)
-        {
-            var row = new List<string>();
-            for (int j = 0; j < matrix.GetLength(1); j++)
-            {
-                row.Add(FormatNumber(matrix[i, j]));
-            }
-            sb.Append(string.Join(" & ", row) + @"\\");
-        }
-        
-        sb.Remove(sb.Length - 2, 2);
-        sb.Append(@"} = ");
+        sb.Append(label + " = ");
         
         // build result
-        double result = Task.Run(() => Matrix.DeterminantI32Async(matrix)).Result;
+        double result = Task.Run(() => Matrix.DeterminantF64Async(matrix)).Result;
+        
+        // singular matrix situation
         if (result == 0)
         {
-            _model.MainSystemSolutionFormula = string.Empty;
-            _model.MainSystemFormula = string.Empty;
-            _ = GenerateKramerModelAsync(_ordinal);
+            _model!.MainSystemSolutionFormula = string.Empty;
+            _model!.MainSystemFormula = string.Empty;
+            _ = GenerateKramerModelAsync();
         }
+        
         Fraction detF = new(result);
         
         if (detF.Denomerator != 1)
@@ -188,7 +193,6 @@ public class KramerMethodProvider : IProvider
     /// <summary>
     /// Собирает результаты (отношения определителей)
     /// </summary>
-    /// <returns></returns>
     private string MakeKramerResults()
     {
         // x1 = det[n]/det[0]
@@ -198,38 +202,10 @@ public class KramerMethodProvider : IProvider
         for (int i = 1; i < _determinantCollection.Count; ++i)
             result += @$"x_{i} = \frac{{{_determinantCollection[i].Enumerator}}}{{{_determinantCollection[0].Enumerator}}}\\";
         
-
         _ = result.Insert(result.Length - 2, "");
         _ = result.Insert(result.Length - 1, "");
         result += "}";
         return result;
-    }
-    
-    /// <summary>
-    /// Изменяет коэффициенты главной матрицы системы
-    /// </summary>
-    /// <param name="value"></param>
-    /// <param name="index"></param>
-    /// <returns></returns>
-    private string FormatCoefficient(int value, int index)
-    {
-        if (value == 0) return "";
-        string formatted = FormatNumber(value);
-        return value switch
-        {
-            1 => $"x_{{{index}}}",
-            -1 => $"-{{x_{index}}}",
-            _ => $"{{{formatted}}}x_{{{index}}}"
-        };
-    }
-    /// <summary>
-    /// Переводит число в строку
-    /// </summary>
-    /// <param name="number"></param>
-    /// <returns></returns>
-    private string FormatNumber(int number)
-    {
-        return number.ToString();
     }
     /// <summary>
     /// Перемещает столбец в основной матрице
@@ -238,10 +214,10 @@ public class KramerMethodProvider : IProvider
     /// <param name="column"></param>
     /// <param name="colIndex"></param>
     /// <returns></returns>
-    private int[,] ReplaceColumn(int[,] original, int[] column, int colIndex)
+    private static double[,] ReplaceColumn(double[,] original, double[] column, int colIndex)
     {
         int n = original.GetLength(0);
-        int[,] newMatrix = new int[n, n];
+        double[,] newMatrix = new double[n, n];
         Array.Copy(original, newMatrix, original.Length);
         
         for (int i = 0; i < n; i++)

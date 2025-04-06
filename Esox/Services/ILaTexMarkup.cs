@@ -24,14 +24,14 @@ public interface ILaTexMarkup
     /// из матричного вида в вид объединения.
     /// </summary>
     /// <returns></returns>
-    string MakeCases(int[,] common, int[] freed, [Optional] string otherName);
+    string MakeCases(double[,] common, double[] freed, [Optional] string otherName);
 
     /// <summary>
     /// Переводит систему линейных уравнений
     /// в вид расширенной матрицы
     /// </summary>
     /// <returns></returns>
-    string MakePMatrix(int[,] common, int[] freed, [Optional] string otherName);
+    string MakePMatrix(double[,] common, double[] freed, [Optional] string otherName);
 
     /// <summary>
     /// Создает систему линейных уравнений

@@ -23,7 +23,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
     private string? _detSystemFormulaString;
     private Visibility _visibility;
     // Основная панель -> дополнительная информация
-    private Page _computesPage;
+    private Page? _computesPage;
 
     // Левая панель -> Уточнения для задания матрицы
     private int _mainSystemOrdinal;
@@ -47,7 +47,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
         get => _makerMode;
         set => SetField(ref _makerMode, value);
     }
-    public Page ComputesPage
+    public Page? ComputesPage
     {
         get => _computesPage;
         set => SetField(ref _computesPage, value);

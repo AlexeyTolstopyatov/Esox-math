@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Esox.Models;
 using Esox.Types;
@@ -30,178 +28,116 @@ public enum LinearCastMaker
 
 public class LinearCastingMethodProvider : IProvider
 {
-    private CommonMethodComputingModel _model;
-    private string _characteristics;
+    private readonly CommonMethodComputingModel? _model;
+    private readonly string _characteristics;
+    private readonly LaTeXMarkup _writer;
+    private readonly int _ordinal;
+    private readonly bool _isHomogenous;
+    private readonly bool _isSingular;
+    private readonly LinearCastMaker _makerType;
     
     public LinearCastingMethodProvider(string matrixLatex)
     {
-        _characteristics = MakeCharacteristics();
+        _ordinal = 0;
+        _writer = new LaTeXMarkup();
         _model = new CommonMethodComputingModel
         {
             MainSystemFormula = matrixLatex
         };
-
-        _ = Deserialize();
+    }
+    
+    public LinearCastingMethodProvider(int ordinal, bool isSingular, bool isHomogenous, LinearCastMaker makerType)
+    {
+        _ordinal = ordinal;
+        _writer = new LaTeXMarkup();
+        _model = new();
+        _characteristics = _writer.Name;
+        
+        // Теорема Кранекера-Капелли.
+        // Если ранг матрицы ниже чем порядок матрицы --
+        // система имеет сегмент решений
+        
+        _isHomogenous = isHomogenous;
+        _isSingular = isSingular;
+        _ = GenerateModel();
     }
 
-    #region Parsing Systems
-
-    /// <summary>
-    /// Десериализует LATEX разметку матрицы системы
-    /// и записывает результаты в два массива
-    /// </summary>
-    /// <returns></returns>
-    private async Task<(double[,], double[])> Deserialize()
+    public LinearCastingMethodProvider(int ordinal, bool isHomogenous, bool isSingular, LinearCastMaker makerType,
+        int min, int max)
     {
-        return await Task.Run(() =>
+        _ordinal = ordinal;
+        _writer = new LaTeXMarkup();
+        _model = new();
+        _characteristics = _writer.Name;
+        
+        // Теорема Кранекера-Капелли.
+        // Если ранг матрицы ниже чем порядок матрицы --
+        // система имеет сегмент решений
+        
+        _isHomogenous = isHomogenous;
+        _isSingular = isSingular;
+        _ = GenerateModel(min, max);
+    }
+
+    #region Asyncronous parts
+
+    private async Task GenerateModel([Optional] int min, [Optional] int max)
+    {
+        await Task.Run(() =>
         {
-            // убрать окружение матрицы (\begin{...} \end{...})
-            string cleaned = Regex
-                .Replace(
-                _model.MainSystemFormula!, 
-                @"\\begin\{.*?\}|\\end\{.*?\}|\s+", 
-                "");
-            string[] rows = Regex
-                .Split(cleaned, @"\\") // "\\)"
-                .Where(x => !string.IsNullOrEmpty(x))
-                .ToArray();
-            
-            _model.MainSystemFormula = cleaned;
-            
-            if (rows.Length == 0)
-                throw new ArgumentException("Неверный формат матрицы");
-
-            // строки -> элементы
-            List<string[]> elements = rows
-                .Select(row => 
-                    Regex
-                        .Split(row, @"(?<!\\)&") // Игнорировать &
-                        .Select(x => x.Replace(@"\&", "&")) // Восстановить &
-                        .ToArray())
-                .ToList();
-
-            // размерность матрицы
-            int rowCount = elements.Count;
-            int colCount = elements[0].Length;
-            
-            // согласованность размеров
-            if (elements.Any(r => r.Length != colCount))
-                throw new ArgumentException("Несовместные измерения");
-
-            // массивы для результатов
-            double[,] matrix = new double[rowCount, colCount - 1];
-            double[] freeTerms = new double[rowCount];
-
-            for (int i = 0; i < rowCount; i++)
+            if (_isSingular)
             {
-                // Парсинг свободных членов
-                if (!TryParseLatexNumber(elements[i][^1], out freeTerms[i]))
-                    throw new FormatException($"Неверный формат числа: {elements[i][^1]}");
-
-                // Парсинг основной матрицы
-                for (int j = 0; j < colCount - 1; j++)
-                {
-                    if (!TryParseLatexNumber(elements[i][j], out matrix[i, j]))
-                        throw new FormatException($"Неверный формат: {elements[i][j]}");
-                }
-                
+                (double[,], double[]) tuple = 
+                    GenerateSingularSystem(_ordinal);
+                MakeSingularSolutionLatex(tuple.Item1, tuple.Item2);
+                return;
             }
-            return (matrix, freeTerms);
+        
+            _extendedMatrix = new double[_ordinal, _ordinal + 1];
+            _solution = new();
+
+            (double[,], double[]) tupleNd = (_makerType == LinearCastMaker.Orthogonal) 
+                ? MakeOrthogonalMatrix(_ordinal) 
+                : MakeNonSingularMatrix(_ordinal, new Random());
+        
+            MakeExtendedSystem(tupleNd.Item1, tupleNd.Item2);
+            MakeExtendedSystemSolutions(out string s, _ordinal);
+        
+            _model!.MainSystemSolutionFormula = s;
+            _model!.MainSystemFormula = "";
         });
     }
-    /// <summary>
-    /// Пробует прочесть и записать коэффициент из LATEX
-    /// разметки.
-    /// </summary>
-    /// <param name="input"></param>
-    /// <param name="result"></param>
-    /// <returns></returns>
-    private bool TryParseLatexNumber(string input, out double result)
-    {
-        // LaTeX-специфичные форматы чисел
-        input = input
-            .Replace(",", "")
-            .Replace(" ", "")
-            .Replace(@"\times", "e")
-            .Replace("cdot", "e")
-            .Replace("^", "e");
 
-        return double.TryParse(input, 
-            System.Globalization.NumberStyles.Any,
-            System.Globalization.CultureInfo.InvariantCulture, 
-            out result);
-    }
-    
     #endregion
     
-    public LinearCastingMethodProvider(int ordinal, bool degenerate, bool homogenous, LinearCastMaker maker)
-    {
-        _model = new();
-        _characteristics = MakeCharacteristics();
-
-        if (degenerate)
-        {
-            (double[,], double[]) tuple = MakeDegenerateSystem(ordinal);
-            MakeDegenerateSolutionLatex(tuple.Item1, tuple.Item2);
-            return;
-        }
-        
-        _extendedMatrix = new double[ordinal, ordinal + 1];
-        _solution = new();
-
-        (double[,], double[]) tupleNd = (maker == LinearCastMaker.Orthogonal) 
-            ? MakeOrthogonalMatrix(ordinal) 
-            : MakeNonSingularMatrix(ordinal, new Random());
-        
-        MakeExtendedSystem(tupleNd.Item1, tupleNd.Item2);
-        MakeExtendedSystemSolutions(out string s, ordinal);
-        
-        _model.MainSystemSolutionFormula = s;
-        _model.MainSystemFormula = "";
-    }
     
-    public CommonMethodComputingModel Model => _model;
-    
-    /// <summary>
-    /// Возвращает заглавную букву матрицы
-    /// системы линейных уравнений.
-    /// </summary>
-    /// <returns></returns>
-    public string MakeCharacteristics()
-    {
-        // Таблица ASCII содержит шестнадцатиричные значения
-        // для заглавных букв латинского алфавита.
-        return Convert
-            .ToChar(Random.Shared.Next(0x40, 0x5A))
-            .ToString();;
-    }
+    public CommonMethodComputingModel? Model => _model;
     
     #region Singular System
     /// <summary>
     /// Создает вырожденную систему линейных уравнений.
     /// (определитель матрицы равен нулю)
     /// </summary>
-    /// <param name="ordinal"></param>
     /// <returns></returns>
-    private (double[,] matrix, double[] constants) MakeDegenerateSystem(int ordinal)
+    private (double[,] matrix, double[] constants) GenerateSingularSystem([Optional] int min, [Optional] int max)
     {
-        double[,] matrix = new double[ordinal, ordinal];
-        double[] constants = new double[ordinal];
+        double[,] matrix = new double[_ordinal, _ordinal];
+        double[] constants = new double[_ordinal];
 
-        for (int i = 0; i < ordinal - 1; i++)
+        for (int i = 0; i < _ordinal - 1; i++)
         {
-            for (int j = 0; j < ordinal; j++)
+            for (int j = 0; j < _ordinal; j++)
             {
                 matrix[i, j] = Random.Shared.Next(-30, 30);
             }
             constants[i] = Random.Shared.Next(-30, 30);
         }
 
-        for (int j = 0; j < ordinal; j++)
+        for (int j = 0; j < _ordinal; j++)
         {
-            matrix[ordinal - 1, j] = matrix[0, j] + matrix[1, j];
+            matrix[_ordinal - 1, j] = matrix[0, j] + matrix[1, j];
         }
-        constants[ordinal - 1] = constants[0] + constants[1];
+        constants[_ordinal - 1] = constants[0] + constants[1];
         
         return (matrix, constants);
     }
@@ -251,7 +187,7 @@ public class LinearCastingMethodProvider : IProvider
     /// <param name="matrix"></param>
     /// <param name="constants"></param>
     /// <returns></returns>
-    private void MakeDegenerateSolutionLatex(double[,] matrix, double[] constants)
+    private void MakeSingularSolutionLatex(double[,] matrix, double[] constants)
     {
         int n = constants.Length;
         StringBuilder sb = new();
@@ -267,7 +203,7 @@ public class LinearCastingMethodProvider : IProvider
                     ? $"{matrix[i, j]}x_{j + 1}" 
                     : $"+ {matrix[i, j]}x_{j + 1}");
             }
-            sb.Append($" = {constants[i]} \\\\");
+            sb.Append(@$" = {constants[i]} \\");
         }
         sb.Append(@"}");
         
@@ -309,7 +245,7 @@ public class LinearCastingMethodProvider : IProvider
     private StringBuilder _solution;
     
     /// <summary>
-    /// 
+    /// Создает не вырожденную матрицу
     /// </summary>
     /// <param name="n"></param>
     /// <param name="rand"></param>
@@ -383,13 +319,6 @@ public class LinearCastingMethodProvider : IProvider
                     matrix[i, k] -= dotProduct * matrix[j, k];
                 }
             }
-
-            // Нормализация строки (не обязательно)
-            // int norm = 0;
-            // for (int k = 0; k < n; k++) 
-            //     norm += matrix[i, k] * matrix[i, k];
-            // norm = (int)Math.Sqrt(norm);
-            // for (int k = 0; k < n; k++) matrix[i, k] /= norm;
         }
 
         double[] freed = new double[n];

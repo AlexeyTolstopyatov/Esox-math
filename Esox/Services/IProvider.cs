@@ -4,5 +4,5 @@ namespace Esox.Services;
 
 public interface IProvider
 {
-    CommonMethodComputingModel Model { get; }
+    CommonMethodComputingModel? Model { get; }
 }

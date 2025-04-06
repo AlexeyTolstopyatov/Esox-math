@@ -19,11 +19,6 @@
                 Margin="20"
                 Foreground="{DynamicResource PrimaryTextBrush}"
                 Formula="{Binding MainSystemFormula}"/>
-            <TextBlock
-                Margin="10"
-                Text="Рассчеты программы"
-                FontSize="16"
-                Foreground="{DynamicResource PrimaryTextBrush}"/>
             <fc:FormulaControl
                 Margin="20,0,20,20"
                 Foreground="{DynamicResource PrimaryTextBrush}"
