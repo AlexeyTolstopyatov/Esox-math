@@ -199,8 +199,8 @@ public class KramerMethodProvider : IProvider
             result += @$"x_{i} = \frac{{{_determinantCollection[i].Enumerator}}}{{{_determinantCollection[0].Enumerator}}}\\";
         
 
-        result.Insert(result.Length - 2, "");
-        result.Insert(result.Length - 1, "");
+        _ = result.Insert(result.Length - 2, "");
+        _ = result.Insert(result.Length - 1, "");
         result += "}";
         return result;
     }

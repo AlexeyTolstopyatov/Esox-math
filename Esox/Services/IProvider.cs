@@ -5,5 +5,4 @@ namespace Esox.Services;
 public interface IProvider
 {
     CommonMethodComputingModel Model { get; }
-    string MakeCharacteristics();
 }
