@@ -18,6 +18,7 @@ public class Fraction
     /// Знаменатель
     /// </summary>
     public int Denomerator { get; private set; }
+    
     public Fraction(double floating64)
     {
         (int n, int d) = Task.Run(() => GetCoefficient(floating64)).Result;
@@ -36,11 +37,13 @@ public class Fraction
     /// </summary>
     /// <param name="x"></param>
     /// <returns></returns>
-    private static (int n, int d) GetDoubledCoefficient(double x) {
+    private static (int n, int d) GetDoubledCoefficient(double x) 
+    {
         // n / d == x
         double n = x;
         int d = 1;
-        while (!IsInteger(n)) {
+        while (!IsInteger(n)) 
+        {
             // n / d == x
             n *= 2;
             d *= 2;
@@ -54,11 +57,12 @@ public class Fraction
     /// <param name="n"></param>
     /// <param name="d"></param>
     /// <returns></returns>
-    private double[] ContinuedFraction(double n, double d) 
+    private int[] ContinuedFraction(double n, double d) 
     {
-        var f = new List<double>();
-        while (d != 0) {
-            f.Add(Math.Floor(n / d));
+        var f = new List<int>();
+        while (d != 0) 
+        {
+            f.Add((int)Math.Floor(n / d));
             (n, d) = (d, n % d);
         }
         return f.ToArray();
@@ -72,7 +76,7 @@ public class Fraction
     /// <returns></returns>
     private (int n, int d) GetCoefficient(double x) 
     {
-        double[] f = ContinuedFraction(x, 1);
+        int[] f = ContinuedFraction(x, 1);
 
         for (int i = 1; i <= f.Length; ++i) 
         {
@@ -80,13 +84,12 @@ public class Fraction
             int d = 0;
             for (int j = i - 1; j >= 0; --j) 
             {
-                (n, d) = ((int)Math.Round(f[j] * n + d), n);
+                (n, d) = (f[j] * n + d, n);
             }
-            if (Math.Abs(n / d - x) < 0.00001) {
-                
-                return (
-                    n / GlobalDivisor(n, d),
-                    d / GlobalDivisor(n, d));
+            if (n / d == x)
+            {
+                int div = GlobalDivisor(n, d);
+                return (n / div, d / div);
             }
         }
         return GetDoubledCoefficient(x);
@@ -103,5 +106,4 @@ public class Fraction
     {
         return y == 0 ? x : GlobalDivisor(y, x % y);
     }
-
 }

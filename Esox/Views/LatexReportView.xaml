@@ -17,10 +17,13 @@
         <StackPanel>
             <fc:FormulaControl
                 Margin="20"
+                SnapsToDevicePixels="True"
                 Foreground="{DynamicResource PrimaryTextBrush}"
-                Formula="{Binding MainSystemFormula}"/>
+                Formula="{Binding MainSystemFormula}"
+                />
             <fc:FormulaControl
                 Margin="20,0,20,20"
+                SnapsToDevicePixels="True"
                 Foreground="{DynamicResource PrimaryTextBrush}"
                 Formula="{Binding ComputesFormulas}"/>
         </StackPanel>

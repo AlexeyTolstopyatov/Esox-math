@@ -12,7 +12,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
     public MainWindowViewModel()
     {
         _visibility = Visibility.Hidden;
-        _makerMode = LinearCastMaker.Triangle;
+        _generatorTypeMode = LinearCastingGeneratorType.Triangle;
         _makeCommand = new ActionCommand(Make);
         _fromLatexCommand = new ActionCommand(FromLatex);
     }
@@ -36,16 +36,16 @@ public class MainWindowViewModel : NotifyPropertyChanged
     private bool _allowDegenerativeSystem;
     private bool _allowSolutionCharacteristics;
     // Левая панель -> Установка режима генерации
-    private LinearCastMaker _makerMode;
+    private LinearCastingGeneratorType _generatorTypeMode;
     
     #endregion
     
     #region View Bingings
     
-    public LinearCastMaker MakerMode
+    public LinearCastingGeneratorType GeneratorTypeMode
     {
-        get => _makerMode;
-        set => SetField(ref _makerMode, value);
+        get => _generatorTypeMode;
+        set => SetField(ref _generatorTypeMode, value);
     }
     public Page? ComputesPage
     {
@@ -177,7 +177,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
             MakeHomogenousInstance = HomogenousSystem,
             MakeSingularInstance = DegenerativeSystem,
             Ordinal = MainSystemOrdinal,
-            MakerType = MakerMode
+            GeneratorTypeType = GeneratorTypeMode
         };
         IProvider method = MethodFactory.MakeMethodProvider(requirements);
         

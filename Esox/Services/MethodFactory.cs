@@ -10,7 +10,7 @@ public static class MethodFactory
         public bool MakeSingleSolution;
         public bool MakeSingularInstance;
         public bool MakeHomogenousInstance;
-        public LinearCastMaker MakerType;
+        public LinearCastingGeneratorType GeneratorTypeType;
     }
     
     /// <summary>
@@ -28,7 +28,7 @@ public static class MethodFactory
             reqs.Ordinal,
             reqs.MakeSingularInstance,
             reqs.MakeHomogenousInstance,
-            reqs.MakerType);
+            reqs.GeneratorTypeType);
     }
 
     /// <summary>

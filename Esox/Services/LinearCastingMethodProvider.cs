@@ -1,13 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 using Esox.Models;
 using Esox.Types;
 
 namespace Esox.Services;
 
-public enum LinearCastMaker
+public enum LinearCastingGeneratorType
 {
     /// <summary>
     /// Метод ортогонализации Грама-Шмидта
@@ -29,118 +29,189 @@ public enum LinearCastMaker
 public class LinearCastingMethodProvider : IProvider
 {
     private readonly CommonMethodComputingModel? _model;
-    private readonly string _characteristics;
     private readonly LaTeXMarkup _writer;
     private readonly int _ordinal;
+    private readonly string _characteristics;
     private readonly bool _isHomogenous;
     private readonly bool _isSingular;
-    private readonly LinearCastMaker _makerType;
+    private readonly LinearCastingGeneratorType _generatorTypeType;
+    private double[,] _extendedMatrix;
+    public CommonMethodComputingModel? Model => _model;
     
+    #region ...cctor
     public LinearCastingMethodProvider(string matrixLatex)
     {
         _ordinal = 0;
-        _writer = new LaTeXMarkup();
+        _writer = new();
+        _characteristics = _writer.Name;
+        _extendedMatrix = new double[1, 1];
         _model = new CommonMethodComputingModel
         {
             MainSystemFormula = matrixLatex
         };
     }
     
-    public LinearCastingMethodProvider(int ordinal, bool isSingular, bool isHomogenous, LinearCastMaker makerType)
+    public LinearCastingMethodProvider(int ordinal, 
+        bool isSingular, bool isHomogenous, 
+        LinearCastingGeneratorType generatorTypeType)
     {
         _ordinal = ordinal;
+        _model = new CommonMethodComputingModel();
         _writer = new LaTeXMarkup();
-        _model = new();
         _characteristics = _writer.Name;
-        
-        // Теорема Кранекера-Капелли.
-        // Если ранг матрицы ниже чем порядок матрицы --
-        // система имеет сегмент решений
-        
-        _isHomogenous = isHomogenous;
         _isSingular = isSingular;
-        _ = GenerateModel();
-    }
+        _isHomogenous = isHomogenous;
+        _generatorTypeType = generatorTypeType;
+        _extendedMatrix = new double[_ordinal,_ordinal + 1];
 
-    public LinearCastingMethodProvider(int ordinal, bool isHomogenous, bool isSingular, LinearCastMaker makerType,
+        _ = GenerateModelAsync();
+    }
+    
+    public LinearCastingMethodProvider(int ordinal, bool isHomogenous, bool isSingular, 
+        LinearCastingGeneratorType generatorTypeType,
         int min, int max)
     {
         _ordinal = ordinal;
         _writer = new LaTeXMarkup();
-        _model = new();
+        _model = new CommonMethodComputingModel();
         _characteristics = _writer.Name;
-        
-        // Теорема Кранекера-Капелли.
-        // Если ранг матрицы ниже чем порядок матрицы --
-        // система имеет сегмент решений
-        
-        _isHomogenous = isHomogenous;
         _isSingular = isSingular;
-        _ = GenerateModel(min, max);
+        _isHomogenous = isHomogenous;
+        _generatorTypeType = generatorTypeType;
+        _extendedMatrix = new double[_ordinal, _ordinal + 1];
+        
+        _ = GenerateModelAsync(min, max);
     }
-
-    #region Asyncronous parts
-
-    private async Task GenerateModel([Optional] int min, [Optional] int max)
-    {
-        await Task.Run(() =>
-        {
-            if (_isSingular)
-            {
-                (double[,], double[]) tuple = 
-                    GenerateSingularSystem(_ordinal);
-                MakeSingularSolutionLatex(tuple.Item1, tuple.Item2);
-                return;
-            }
-        
-            _extendedMatrix = new double[_ordinal, _ordinal + 1];
-            _solution = new();
-
-            (double[,], double[]) tupleNd = (_makerType == LinearCastMaker.Orthogonal) 
-                ? MakeOrthogonalMatrix(_ordinal) 
-                : MakeNonSingularMatrix(_ordinal, new Random());
-        
-            MakeExtendedSystem(tupleNd.Item1, tupleNd.Item2);
-            MakeExtendedSystemSolutions(out string s, _ordinal);
-        
-            _model!.MainSystemSolutionFormula = s;
-            _model!.MainSystemFormula = "";
-        });
-    }
-
     #endregion
+    #region Factory Modules
+    private async Task GenerateModelAsync([Optional] int min, [Optional] int max)
+    {
+        _extendedMatrix = new double[_ordinal, _ordinal + 1];
+        
+        (double[,], double[]) tupleNd = _generatorTypeType == LinearCastingGeneratorType.Orthogonal
+            ? GenerateOrthogonalMatrix(min, max) 
+            : GenerateTriangleMatrix(min, max);
+        
+        
+        WriteSystem(_writer.MakeCases2(tupleNd.Item1, tupleNd.Item2));
+        WriteExtendedSystem(tupleNd.Item1, tupleNd.Item2);
+
+        bool isUndefined = await MakeSystemCharacteristics();
     
-    
-    public CommonMethodComputingModel? Model => _model;
-    
-    #region Singular System
+        if (!isUndefined)
+            await MakeDefinedSystemSolution();
+    }
+    #endregion
+    #region Matrix Maker
     /// <summary>
-    /// Создает вырожденную систему линейных уравнений.
-    /// (определитель матрицы равен нулю)
+    /// Создает не вырожденную матрицу
     /// </summary>
     /// <returns></returns>
-    private (double[,] matrix, double[] constants) GenerateSingularSystem([Optional] int min, [Optional] int max)
+    private (double[,], double[]) GenerateTriangleMatrix([Optional] int min, [Optional] int max)
     {
-        double[,] matrix = new double[_ordinal, _ordinal];
-        double[] constants = new double[_ordinal];
-
-        for (int i = 0; i < _ordinal - 1; i++)
+        if (min == 0 || max == 0)
         {
+            min = -10;
+            max = +10;
+        }
+        double[,] matrix = new double[_ordinal, _ordinal];
+    
+        // Заполнение верхней треугольной матрицы
+        for (int i = 0; i < _ordinal; i++)
+        {
+            for (int j = i; j < _ordinal; j++)
+            {
+                matrix[i, j] = Random.Shared.Next(min, max);
+            }
+            matrix[i, i] = (Random.Shared.Next(min, max) == 0) 
+                ? 1 
+                : -1; // гарантия ненулевого элемента
+        }
+
+        // Добавляем случайные комбинации строк для "перемешивания"
+        for (int i = 0; i < _ordinal; i++)
+        {
+            for (int j = i + 1; j < _ordinal; j++)
+            {
+                double factor = Random.Shared.Next(min, max);
+                for (int k = 0; k < _ordinal; k++)
+                {
+                    matrix[j, k] += factor * matrix[i, k];
+                }
+            }
+        }
+            
+        double[] freed = new double[_ordinal];
+
+        for (int i = 0; i < _ordinal; ++i)
+        {
+            freed[i] = Random.Shared.Next(min, max);
+        }
+        
+        return (matrix, freed);
+    }
+    /// <summary>
+    /// Задает случайными числами матрицы
+    /// </summary>
+    /// <returns></returns>
+    private (double[,], double[]) GenerateOrthogonalMatrix([Optional] int min, [Optional] int max)
+    {
+        if (min == 0 || max == 0)
+        {
+            min = -10;
+            max = 10;
+        }
+        double[,] matrix = new double[_ordinal, _ordinal];
+        for (int i = 0; i < _ordinal; i++)
+        {
+            // случайный вектор
             for (int j = 0; j < _ordinal; j++)
             {
-                matrix[i, j] = Random.Shared.Next(-30, 30);
+                matrix[i, j] = Random.Shared.Next(min, max);
+                if (Math.Abs(matrix[i, j] - int.MaxValue) < 0 ||
+                    Math.Abs(matrix[i, j] - int.MinValue) < 0)
+                    matrix[i, j] = Random.Shared.Next(min, max);
             }
-            constants[i] = Random.Shared.Next(-30, 30);
+
+            // Ортогонализация относительно предыдущих строк
+            for (int j = 0; j < i; j++)
+            {
+                double dotProduct = 0;
+                for (int k = 0; k < _ordinal; k++)
+                {
+                    dotProduct += matrix[i, k] * matrix[j, k];
+                }
+
+                for (int k = 0; k < _ordinal; k++)
+                {
+                    matrix[i, k] -= dotProduct * matrix[j, k];
+                }
+            }
         }
 
-        for (int j = 0; j < _ordinal; j++)
+        double[] freed = new double[_ordinal];
+
+        for (int i = 0; i < _ordinal; ++i)
         {
-            matrix[_ordinal - 1, j] = matrix[0, j] + matrix[1, j];
+            freed[i] = Random.Shared.Next(min, max);
         }
-        constants[_ordinal - 1] = constants[0] + constants[1];
         
-        return (matrix, constants);
+        return (matrix, freed);
     }
+    #endregion
+    #region Output modules
+
+    private void WriteSolution(string content)
+    {
+        _model!.MainSystemSolutionFormula += content;
+    }
+
+    private void WriteSystem(string content)
+    {
+        _model!.MainSystemFormula += content;
+    }
+    #endregion
+    #region Rank
     /// <summary>
     /// Считает ранг матрицы
     /// </summary>
@@ -175,365 +246,243 @@ public class LinearCastingMethodProvider : IProvider
         }
         return rang;
     }
-
+    /// <summary>
+    /// Считает минимум из двух значений
+    /// </summary>
+    /// <returns>
+    /// </returns>
     private int Minimum(int a, int b)
     {
         return a < b ? a : b;
     }
-    
-    /// <summary>
-    /// Создает разметку решения системы линейных уравнений
-    /// </summary>
-    /// <param name="matrix"></param>
-    /// <param name="constants"></param>
-    /// <returns></returns>
-    private void MakeSingularSolutionLatex(double[,] matrix, double[] constants)
-    {
-        int n = constants.Length;
-        StringBuilder sb = new();
-
-        // Запись системы
-        sb.Append($"{_characteristics} = ");
-        sb.Append(@"\cases{");
-        for (int i = 0; i < n; i++)
-        {
-            for (int j = 0; j < n; j++)
-            {
-                sb.Append(j == 0 
-                    ? $"{matrix[i, j]}x_{j + 1}" 
-                    : $"+ {matrix[i, j]}x_{j + 1}");
-            }
-            sb.Append(@$" = {constants[i]} \\");
-        }
-        sb.Append(@"}");
-        
-        // Запись решения.
-        _model.MainSystemFormula = sb.ToString();
-        sb.Clear();
-        
-        sb.Append(@$"\\ \det{{{_characteristics}}} = \pmatrix{{");
-        for (int i = 0; i < n; i++)
-        {
-            for (int j = 0; j < n; j++)
-            {
-                sb.Append($"{matrix[i, j]} & ");
-            }
-            sb.Remove(sb.Length - 2, 2).Append(@"\\ ");
-        }
-        sb.Append(@"} = 0 \\");
-        // Ранг
-        sb.Append($@"r({_characteristics}) = {Rank(matrix)}");
-        
-        // Общее решение
-        sb.Append(@"\\ \cases{");
-        sb.Append(@"x_1 = " + (constants[0] - 2) + @" - t \\");
-        for (int i = 1; i < n; i++)
-        {
-            sb.Append($@"x_{i + 1} = t_{i} \\");
-        }
-
-        sb.Insert(sb.Length - 2, "");
-        sb.Insert(sb.Length - 1, "");
-        sb.Append(@"}");
-
-        _model.MainSystemSolutionFormula = sb.ToString();
-    }
     #endregion
 
-    #region Common System
-    private double[,] _extendedMatrix;
-    private StringBuilder _solution;
-    
+    #region Asynchronous
     /// <summary>
-    /// Создает не вырожденную матрицу
+    /// Я переименую этот метод позже.
+    /// Характеристики Системы линейных уравнений
+    /// в данном случае подразумевают порядок, ранг матрицы
+    /// и вердикт согласно теореме Кранекера-Капелли.
     /// </summary>
-    /// <param name="n"></param>
-    /// <param name="rand"></param>
-    /// <returns></returns>
-    private static (double[,], double[]) MakeNonSingularMatrix(int n, Random rand)
+    /// <returns>
+    /// Возвращает истину, если система имеет множество решений.
+    /// </returns>
+    private Task<bool> MakeSystemCharacteristics()
     {
-        double[,] matrix = new double[n, n];
-    
-        // Заполнение верхней треугольной матрицы
-        for (int i = 0; i < n; i++)
+        int rank = Rank(_extendedMatrix);
+        WriteSolution(_writer.MakeText("Характеристики системы"));
+        WriteSolution(@$"n({_writer.Name}) = {_ordinal} \\");
+        WriteSolution(@$"r({_writer.Name}) = {rank} \\");
+        WriteSolution(_writer.MakeText("Возможность множества решений " + (_ordinal != rank)));
+        
+        return Task.FromResult(_ordinal != rank);
+    }
+    /// <summary>
+    /// Разрешает определенную систему линейных уравнений
+    /// </summary>
+    private async Task MakeDefinedSystemSolution()
+    {
+        await Task.Run(() =>
         {
-            for (int j = i; j < n; j++)
+            // 1. Прямой ход (приведение к ступенчатому виду)
+            for (int i = 0; i < _extendedMatrix.GetLength(0); i++)
             {
-                matrix[i, j] = rand.Next(-10, 10);
-            }
-            matrix[i, i] = (rand.Next(-10, 10) == 0) 
-                ? 1 
-                : -1; // гарантия ненулевого элемента
-        }
-
-        // Добавляем случайные комбинации строк для "перемешивания"
-        for (int i = 0; i < n; i++)
-        {
-            for (int j = i + 1; j < n; j++)
-            {
-                double factor = rand.Next(-10, 10);
-                for (int k = 0; k < n; k++)
+                // Поиск максимального элемента в столбце (частичный выбор главного элемента)
+                int maxRow = i;
+                for (int k = i + 1; k < _extendedMatrix.GetLength(0); k++)
                 {
-                    matrix[j, k] += factor * matrix[i, k];
+                    if (Math.Abs(_extendedMatrix[k, i]) > Math.Abs(_extendedMatrix[maxRow, i]))
+                    {
+                        maxRow = k;
+                    }
+                }
+
+                // Перестановка строк, если необходимо
+                if (maxRow != i)
+                {
+                    SwapRowsByIndex(i, maxRow);
+                    WriteSolution(_writer.MakePMatrixWithText("Перестановка строк " + (i + 1) + " и " + (maxRow + 1), false, _extendedMatrix));
+                }
+
+                // Нормализация текущей строки
+                double pivot = _extendedMatrix[i, i];
+                if (pivot == 0)
+                {
+                    WriteSolution(_writer.MakeText("Матрица вырождена. Решение не может быть найдено"));
+                    return; // Выходим из асинхронной задачи
+                }
+                for (int j = i; j < _extendedMatrix.GetLength(1); j++)
+                {
+                    _extendedMatrix[i, j] = Math.Round(pivot / _extendedMatrix[i, j]);
+                }
+                WriteSolution(_writer.MakePMatrixWithText("Нормализация строки " + (i + 1), false, _extendedMatrix));
+                
+                // Обнуление элементов под диагональю
+                for (int k = i + 1; k < _extendedMatrix.GetLength(0); k++)
+                {
+                    double factor = _extendedMatrix[k, i];
+                    for (int j = i; j < _extendedMatrix.GetLength(1); j++)
+                    {
+                        _extendedMatrix[k, j] -= factor * _extendedMatrix[i, j];
+                    }
+                    WriteSolution(_writer.MakePMatrixWithText("Вычитание строки " + (i + 1) + " умноженной на " + Math.Round(factor) + " из строки " + (k + 1), false, _extendedMatrix));
                 }
             }
-        }
-            
-        double[] freed = new double[n];
 
-        for (int i = 0; i < n; ++i)
+            // 2. Обратный ход (приведение к единичной матрице)
+            for (int i = _extendedMatrix.GetLength(0) - 1; i >= 0; i--)
+            {
+                for (int k = i - 1; k >= 0; k--)
+                {
+                    double factor = _extendedMatrix[k, i];
+                    for (int j = i; j < _extendedMatrix.GetLength(1); j++)
+                    {
+                        _extendedMatrix[k, j] -= factor * _extendedMatrix[i, j];
+                    }
+                    WriteSolution(_writer.MakePMatrixWithText(
+                        "Вычитание строки " + (i + 1) + " умноженной на " + Math.Round(factor) + " из строки " + (k + 1) + " (обратный ход)",
+                        false, _extendedMatrix));
+                }
+            }
+            // 3. Перезапись в виде системы линейных уравнений
+            WriteSolution(_writer.MakeText("Решение"));
+            ReadExtendedSystem(_extendedMatrix, out double[,] common, out double[] freed);
+            WriteSolution(_writer.MakeCases2(common, freed));
+        });
+    }
+    /// <summary>
+    /// Разрешает неопределенную систему линейных уравнений
+    /// </summary>
+    private Task MakeUndefinedSystemSolution()
+    {
+        return Task.CompletedTask;
+    }
+    #endregion
+    #region Fundamental Solutions
+    /// <summary>
+    /// Фундаментальная совокупность решений
+    /// однородной СЛАУ
+    /// </summary>
+    /// <param name="matrixRowEchelon"></param>
+    /// <returns>
+    /// Зубчатый массив
+    /// </returns>
+    private double[,] FindFundamentalSolutions(double[,] matrixRowEchelon)
+    {
+        int rank = Rank(matrixRowEchelon);
+        int paramsCount = matrixRowEchelon.GetLength(1);
+        int freedCount = paramsCount - rank;
+
+        List<int> basicVars = new();
+        List<int> freeVars = new();
+
+        for (int row = 0, col = 0; row < rank && col < paramsCount; col++)
         {
-            freed[i] = Random.Shared.Next(-10, 10);
+            if (Math.Abs(matrixRowEchelon[row, col]) > 1e-10) 
+            {
+                basicVars.Add(col);
+                row++;
+            }
+            else
+            {
+                freeVars.Add(col);
+            }
         }
         
-        return (matrix, freed);
-    }
-    
-    /// <summary>
-    /// Задает случайными числами матрицы
-    /// </summary>
-    /// <param name="n"></param>
-    /// <returns></returns>
-    private static (double[,], double[]) MakeOrthogonalMatrix(int n)
-    {
-        double[,] matrix = new double[n, n];
-        for (int i = 0; i < n; i++)
+        double[,] fundamentals = new double[paramsCount, freedCount];
+
+        for (int i = 0; i < freedCount; i++)
         {
-            // случайный вектор
-            for (int j = 0; j < n; j++)
+            int currentFreeVar = freeVars[i];
+            for (int varIndex = 0; varIndex < paramsCount; varIndex++)
             {
-                matrix[i, j] = Random.Shared.Next(-10, 10);
-            }
-
-            // Ортогонализация относительно предыдущих строк
-            for (int j = 0; j < i; j++)
-            {
-                double dotProduct = 0;
-                for (int k = 0; k < n; k++)
+                // Свободная переменная
+                if (freeVars.Contains(varIndex)) 
                 {
-                    dotProduct += matrix[i, k] * matrix[j, k];
+                    // Для i-й свободной переменной ставим 1, остальным 0
+                    fundamentals[varIndex, i] = (varIndex == currentFreeVar) ? 1 : 0;
                 }
-
-                for (int k = 0; k < n; k++)
+                else
                 {
-                    matrix[i, k] -= dotProduct * matrix[j, k];
+                    //fundamentals[varIndex, i] = FindBasicParameters(matrixRowEchelon, varIndex, currentFreeVar);
                 }
             }
         }
-
-        double[] freed = new double[n];
-
-        for (int i = 0; i < n; ++i)
-        {
-            freed[i] = Random.Shared.Next(-10, 10);
-        }
-        
-        return (matrix, freed);
+        return fundamentals;
     }
+    #endregion
+    #region Savers
     /// <summary>
     /// Собирает расширенную матрицу
-    /// системы линейных алгебраических уравнений
+    /// системы линейных алгебраических уравнений в <c>_extendedSystem</c>
     /// </summary>
-    /// <param name="expectedExtended"></param>
-    /// <param name="freeCoefficients"></param>
+    /// <param name="common">Основная Матрица</param>
+    /// <param name="freed">Столбец свободных коэффициентов</param>
     /// <returns></returns>
-    private void MakeExtendedSystem(double[,] expectedExtended, double[] freeCoefficients)
+    private void WriteExtendedSystem(double[,] common, double[] freed)
     {
-        int n = expectedExtended.GetLength(0);
-        _extendedMatrix = new double[n, n + 1];
-        _solution = new StringBuilder();
+        _extendedMatrix = new double[_ordinal, _ordinal + 1];
         
         // Инициализация расширенной матрицы
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < _ordinal; i++)
         {
-            for (int j = 0; j < n; j++)
+            for (int j = 0; j < _ordinal; j++)
             {
-                _extendedMatrix[i, j] = expectedExtended[i, j];
+                _extendedMatrix[i, j] = common[i, j];
             }
-            _extendedMatrix[i, n] = freeCoefficients[i];
+            _extendedMatrix[i, _ordinal] = freed[i];
         }
-        MakeLatexFormulaStep($"{_characteristics} = ", n);
+        WriteSolution(_writer.MakePMatrixWithText($"Запишем расширенную матрицу системы", false, _extendedMatrix));
     }
     /// <summary>
-    /// Разрешает расширенную систему уравнений
-    /// методом Гаусса. (или методом линейных преобразований)
+    /// Разделяет расширенную матрицу на основную матрицу и вектор свободных членов.
     /// </summary>
-    /// <param name="latexReport"></param>
-    /// <param name="limits"></param>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException"></exception>
-    private double[] MakeExtendedSystemSolutions(out string latexReport, int limits)
+    /// <param name="extended">Расширенная матрица.</param>
+    /// <param name="common">Основная матрица (выходной параметр).</param>
+    /// <param name="freed">Вектор свободных членов (выходной параметр).</param>
+    /// <returns>True, если разделение прошло успешно (матрица не пустая и имеет правильную структуру), иначе False.</returns>
+    private static void ReadExtendedSystem(double[,] extended, out double[,] common, out double[] freed)
     {
-        try
+        common = null!;
+        freed = null!;
+
+        if (extended == null!)
         {
-            GaussianElimination(limits);
-            return BackSubstitution(out latexReport, limits);
-        }
-        catch (InvalidOperationException ex)
-        {
-            latexReport = _solution.ToString();
+            return;
         }
 
-        return new double[]{};
-    }
+        int rows = extended.GetLength(0);
+        int cols = extended.GetLength(1);
 
-    /// <summary>
-    /// Исключение по Гауссу это сокращение строк,
-    /// представляет собой алгоритм решения систем линейных уравнений.
-    /// </summary>
-    /// <param name="limits"></param>
-    /// <exception cref="InvalidOperationException"></exception>
-    private void GaussianElimination(int limits)
-    {
-        for (int i = 0; i < limits; i++)
+        if (rows == 0 || cols < 2)
         {
-            // Выбор ведущего элемента
-            int freed = FindFreeRow(i, limits);
-            if (Math.Abs(_extendedMatrix[freed, i]) < 1e-3)
-                throw new InvalidOperationException("Матрица вырождена");
+            return;
+        }
 
-            if (freed != i)
+        common = new double[rows, cols - 1];
+        freed = new double[rows];
+
+        for (int i = 0; i < rows; i++)
+        {
+            for (int j = 0; j < cols - 1; j++)
             {
-                SwapRows(i, freed, limits);
-                MakeLatexFormulaStep($"Перестановка строк {i + 1} и {freed + 1}:", limits);
+                common[i, j] = extended[i, j];
             }
-
-            // Нормализация строки
-            NormalizeRow(i, limits);
-            MakeLatexFormulaStep($"Нормализация строки {i + 1}:", limits);
-
-            // Исключение
-            for (int j = i + 1; j < limits; j++)
-            {
-                EliminateRow(j, i, limits);
-                MakeLatexFormulaStep($"Исключение в строке {j + 1} используя строку {i + 1}:", limits);
-            }
+            freed[i] = extended[i, cols - 1];
         }
     }
-
-    /// <summary>
-    /// Реализация обратной подстановки. Возвращает главную матрицу системы
-    /// в разрешенном виде.
-    /// </summary>
-    /// <param name="latex"></param>
-    /// <param name="limits"></param>
-    /// <returns></returns>
-    private double[] BackSubstitution(out string latex, int limits)
-    {
-        double[] solution = new double[limits];
-        StringBuilder solutionBuilder = new();
-
-        for (int i = limits - 1; i >= 0; i--)
-        {
-            solution[i] = _extendedMatrix[i, limits];
-            for (int j = i + 1; j < limits; j++)
-            {
-                solution[i] -= _extendedMatrix[i, j] * solution[j];
-            }
-        }
-
-        solutionBuilder.Append(@"\text{Решение} \\\\");
-        solutionBuilder.Append(@"\cases{");
-        for (int i = 0; i < limits; i++)
-        {
-            solutionBuilder.Append($"x_{{{i + 1}}} = {solution[i]} \\\\");
-        }
-        solutionBuilder.Append("}");
-        
-        latex = _solution.ToString() + solutionBuilder;
-        return solution;
-    }
-
-    /// <summary>
-    /// Ищет свободный стобец
-    /// </summary>
-    /// <param name="col"></param>
-    /// <param name="n"></param>
-    /// <returns></returns>
-    private int FindFreeRow(int col, int n)
-    {
-        int maxRow = col;
-        for (int i = col + 1; i < n; i++)
-        {
-            if (Math.Abs(_extendedMatrix[i, col]) > 
-                Math.Abs(_extendedMatrix[maxRow, col]))
-            {
-                maxRow = i;
-            }
-        }
-        return maxRow;
-    }
+    #endregion
     /// <summary>
     /// Изменяет порядок строк
     /// </summary>
-    /// <param name="row1"></param>
-    /// <param name="row2"></param>
-    /// <param name="limits"></param>
-    private void SwapRows(int row1, int row2, int limits)
+    /// <param name="row1">Столбец который изменяется</param>
+    /// <param name="row2">Столбец которым заменяется</param>
+    private void SwapRowsByIndex(int row1, int row2)
     {
-        for (int j = 0; j <= limits; j++)
+        for (int j = 0; j < (_ordinal + 1); j++)
         {
-            (_extendedMatrix[row1, j], _extendedMatrix[row2, j]) = (_extendedMatrix[row2, j], _extendedMatrix[row1, j]);
+            (_extendedMatrix[row1, j], _extendedMatrix[row2, j]) = 
+                (_extendedMatrix[row2, j], _extendedMatrix[row1, j]);
         }
     }
-    /// <summary>
-    /// Нормализует строку
-    /// </summary>
-    /// <param name="row"></param>
-    /// <param name="limits"></param>
-    private void NormalizeRow(int row, int limits)
-    {
-        double divisor = _extendedMatrix[row, row];
-        for (int j = row; j <= limits; j++)
-        {
-            _extendedMatrix[row, j] /= divisor;
-        }
-    }
-
-    /// <summary>
-    /// Удаляет ненужную строку
-    /// (согласно методу линейных преобразований)
-    /// </summary>
-    /// <param name="targetRow"></param>
-    /// <param name="freedRow"></param>
-    /// <param name="limits"></param>
-    private void EliminateRow(int targetRow, int freedRow, int limits)
-    {
-        double factor = _extendedMatrix[targetRow, freedRow];
-        for (int j = freedRow; j <= limits; j++)
-        {
-            _extendedMatrix[targetRow, j] -= factor * _extendedMatrix[freedRow, j];
-        }
-    }
-    /// <summary>
-    /// Добавляет шаг под указанным названием в
-    /// формулу
-    /// </summary>
-    /// <param name="description"></param>
-    /// <param name="n"></param>
-    private void MakeLatexFormulaStep(string description, int n)
-    {
-        _solution.Append($@"\text{{{description}}} \\");
-        _solution.Append(@"\pmatrix{");
-        
-        for (int i = 0; i < n; i++)
-        {
-            for (int j = 0; j <= n; j++)
-            {
-                // if Fraction -> new Fraction()
-                Fraction f = new(_extendedMatrix[i, j]);
-                _solution.Append(f.Denomerator == 1
-                    ? $"{(int)f.Enumerator}" 
-                    : @$"\frac{{ {(int)f.Enumerator} }}{{ {(int)f.Denomerator} }}");
-                
-                if (j < n) _solution.Append(" & ");
-            }
-            _solution.Append(@" \\");
-        }
-        _solution.Insert(_solution.Length - 2, "");
-        _solution.Insert(_solution.Length - 1, "");
-        _solution.AppendLine("}");
-    }
-    
-    #endregion
 }

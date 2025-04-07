@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Esox.Services;
 
@@ -39,7 +40,9 @@ public interface ILaTexMarkup
     /// </summary>
     /// <param name="text">Описание</param>
     /// <param name="isBold">Сделать жирным?</param>
+    /// <param name="extended">Расширенная матрица</param>
+    /// <param name="otherName">Другое наименование объекта</param>
     /// <returns></returns>
-    string MakePMatrixWithText(string text, bool isBold);
+    string MakePMatrixWithText(string text, bool isBold, double[,] extended, [Optional] string otherName);
     
 }

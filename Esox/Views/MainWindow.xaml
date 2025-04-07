@@ -80,12 +80,12 @@
                         <Label
                             HorizontalAlignment="Left"
                             BorderBrush="{DynamicResource RegionBrush}"
-                            Content="Решения системы"
+                            Content="Способ решения"
                             Opacity="0.8"/>
                         <StackPanel>
                             <CheckBox
                                 BorderBrush="{DynamicResource RegionBrush}"
-                                Content="Единственное"
+                                Content="Правило Крамера"
                                 IsEnabled="{Binding AllowSolutionCharacteristics}"
                                 IsChecked="{Binding SingleSystemResult}"
                                 Margin="5"
@@ -104,7 +104,7 @@
                             <ComboBox
                                 Width="250"
                                 Margin="5"
-                                SelectedIndex="{Binding MakerMode}">
+                                SelectedIndex="{Binding GeneratorTypeMode}">
                                 <ComboBoxItem Content="Метод Ортогонализации"/>
                                 <ComboBoxItem Content="Метод Треугольных матриц"/>
                             </ComboBox>
