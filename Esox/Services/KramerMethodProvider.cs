@@ -11,8 +11,8 @@ namespace Esox.Services;
 public class KramerMethodProvider : IProvider
 {
     private readonly int _ordinal;
-    private readonly List<Fraction> _determinantCollection;
-    private readonly LaTeXMarkup _writer;
+    private readonly List<FracF64> _determinantCollection;
+    private readonly LaTeXF64Markup _writer;
 
     // public KramerMethodProvider(double[,] common, double[] freed)
     // {
@@ -34,7 +34,7 @@ public class KramerMethodProvider : IProvider
     public KramerMethodProvider(int ordinal)
     {
         _ordinal = ordinal;
-        _determinantCollection = new List<Fraction>();
+        _determinantCollection = new List<FracF64>();
         _writer = new();
         _model = new();
         _ = GenerateKramerModelAsync();
@@ -170,7 +170,7 @@ public class KramerMethodProvider : IProvider
             _ = GenerateKramerModelAsync();
         }
         
-        Fraction detF = new(result);
+        FracF64 detF = new(result);
         
         if (detF.Denomerator != 1)
             sb.Append(@$"\frac{{{detF.Enumerator}}}{{{detF.Denomerator}}}");
@@ -186,7 +186,7 @@ public class KramerMethodProvider : IProvider
     /// Запоминает определитель матрицы
     /// </summary>
     /// <param name="f"></param>
-    private void SetDeterminant(Fraction f)
+    private void SetDeterminant(FracF64 f)
     {
         _determinantCollection.Add(f);
     }

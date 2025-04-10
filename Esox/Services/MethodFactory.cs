@@ -25,10 +25,7 @@ public static class MethodFactory
             return new KramerMethodProvider(reqs.Ordinal);
 
         return new LinearCastingMethodProvider(
-            reqs.Ordinal,
-            reqs.MakeSingularInstance,
-            reqs.MakeHomogenousInstance,
-            reqs.GeneratorTypeType);
+            reqs.Ordinal, reqs.GeneratorTypeType);
     }
 
     /// <summary>
@@ -39,6 +36,6 @@ public static class MethodFactory
     /// <returns></returns>
     public static IProvider MakeMethodProvider(string latex)
     {
-        return new LinearCastingMethodProvider(latex);
+        throw new NotImplementedException();
     }
 }

@@ -43,6 +43,6 @@ public interface ILaTexMarkup
     /// <param name="extended">Расширенная матрица</param>
     /// <param name="otherName">Другое наименование объекта</param>
     /// <returns></returns>
-    string MakePMatrixWithText(string text, bool isBold, double[,] extended, [Optional] string otherName);
+    string MakeExtendedPMatrixWithText(string text, bool isBold, double[,] extended, [Optional] string otherName);
     
 }
