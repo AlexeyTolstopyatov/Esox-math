@@ -25,7 +25,16 @@
                 Margin="20,0,20,20"
                 SnapsToDevicePixels="True"
                 Foreground="{DynamicResource PrimaryTextBrush}"
+                FontSize="16"
                 Formula="{Binding ComputesFormulas}"/>
+            <TextBlock
+                Margin="20,0,20, 20"
+                FontSize="16"
+                TextWrapping="WrapWithOverflow"
+                Foreground="{DynamicResource PrimaryTextBrush}"
+                Text="{Binding ComputesFormulas}">
+                
+            </TextBlock>
         </StackPanel>
     </Grid>
 </Page>

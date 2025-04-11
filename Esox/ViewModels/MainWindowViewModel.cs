@@ -184,7 +184,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
         ComputesPage = new LatexReportView
         {
             DataContext = new LatexReportViewModel(
-                method.Model.MainSystemFormula!,
+                method.Model!.MainSystemFormula!,
                 method.Model.MainSystemSolutionFormula!)
         };
 

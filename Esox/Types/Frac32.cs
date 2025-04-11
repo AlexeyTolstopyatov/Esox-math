@@ -11,7 +11,7 @@ namespace Esox.Types;
 /// Представляет тип обыкновенной дроби
 /// Хранение данных осуществляется в <c>i32</c>
 /// </summary>
-public class Frac32
+public struct Frac32
 {
     #region Object Interface
     private bool Equals(Frac32 other)
@@ -54,9 +54,9 @@ public class Frac32
     /// Переводит double значение в обыкновенную дробь
     /// </summary>
     /// <param name="f64"></param>
-    public Frac32(double f64)
+    public Frac32(double f64) : this(1)
     {
-        (int n, int d) = Task.Run(() => GetCoefficient(f64)).Result;
+        (int n, int d) = GetCoefficient(f64);
         Enumerator = n;
         Denominator = d;
     }
@@ -98,9 +98,9 @@ public class Frac32
     /// <returns></returns>
     public static Frac32 operator -(Frac32 a, Frac32 b)
     {
-        b.Enumerator = -b.Enumerator;
-        b.Denominator = -b.Denominator;
-        return a + b;
+        int newNumerator = a.Enumerator * b.Denominator - b.Enumerator * a.Denominator;
+        int newDenominator = a.Denominator * b.Denominator;
+        return new Frac32(newNumerator, newDenominator);
     }
     /// <summary>
     /// Разворачивает дробь по ссылке
@@ -138,7 +138,8 @@ public class Frac32
     /// Умножает дроби
     /// </summary>
     public static Frac32 operator *(Frac32 a, Frac32 b) => 
-        new(a.Enumerator * b.Enumerator, a.Denominator * b.Denominator);
+        new(a.Enumerator * b.Enumerator, 
+            a.Denominator * b.Denominator);
     
     /// <summary>
     /// Делит дроби
@@ -198,14 +199,21 @@ public class Frac32
         return new Frac32(roundedE, roundedD);
     }
     /// <summary>
+    /// Считает модуль числителя
+    /// </summary>
+    /// <param name="a"></param>
+    /// <returns></returns>
+    public static Frac32 Abs(Frac32 a) 
+        => new Frac32(Math.Abs(a.Enumerator), a.Denominator);
+    /// <summary>
     /// Сокращает числитель и знаменатель дроби на наибольший
     /// общий делитель.
     /// </summary>
     public void Clear()
     {
         int g = GlobalDivisor(Denominator, Enumerator);
-        Enumerator = Enumerator / g;
-        Denominator = Denominator / g;
+        Enumerator /= g;
+        Denominator /= g;
     }
     /// <summary>
     /// Возвращает Скалярное произведение
@@ -213,7 +221,7 @@ public class Frac32
     /// <returns></returns>
     public static Frac32 Scalar(Frac32[] a, Frac32[] b)
     {
-        Frac32 result = Frac32.Zero;
+        Frac32 result = Zero;
         for (int i = 0; i < a.Length; i++)
         {
             result += a[i] * b[i];
@@ -257,6 +265,9 @@ public class Frac32
     {
         if (Enumerator == 0)
             return "0";
+        
+        if (Denominator == -1)
+            return $"{Enumerator * -1}";
         
         return Denominator == 1
             ? $"{Enumerator}" 

@@ -108,6 +108,8 @@
                                 SelectedIndex="{Binding GeneratorTypeMode}">
                                 <ComboBoxItem Content="Метод Ортогонализации"/>
                                 <ComboBoxItem Content="Метод Треугольных матриц"/>
+                                <ComboBoxItem Content="Создание линейной зависимости"/>
+                                <ComboBoxItem Content="Случайные коэффициенты"/>
                             </ComboBox>
                         </StackPanel>
                     </StackPanel>
