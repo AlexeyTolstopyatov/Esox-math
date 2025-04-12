@@ -74,17 +74,21 @@ public class LinearCastingMethodProvider : IProvider
         {
             LinearCastingGeneratorType.Orthogonal => _generator.GenerateOrthogonalFrac32Matrix(),
             LinearCastingGeneratorType.Triangle => _generator.GenerateTriangleFrac32Matrix(),
-            LinearCastingGeneratorType.Undefined => _generator.GenerateUndeterminedSystem(_ordinal -1),
-            _ => _generator.GenerateRandomFrac32Matrix()
+            LinearCastingGeneratorType.Undefined => _generator.GenerateRandomFrac32Matrix(),
+            _ => _generator.GenerateUndeterminedSystem(_ordinal - 1)
         };
         
         await WriteSystemToStringAsync(vectors);
         await WriteSolutionToStringAsync(_writer.MakePMatrix(vectors.matrix, vectors.vector));
-        //await Task.Run(() => InitializeRowEchelon(vectors));
+        
         FindSolutions(vectors.matrix, vectors.vector);
     }
-
-    private Task<Frac32[,]> InitializeExtendedMatrixAsync((Frac32[,] matrix, Frac32[] vector) vectors)
+    /// <summary>
+    /// Заполняет расширенную матрицу системы
+    /// из кортежа основных векторов
+    /// </summary>
+    /// <param name="vectors">кортеж векторов системы</param>
+    private Task<Frac32[,]> ToExtendedMatrixAsync((Frac32[,] matrix, Frac32[] vector) vectors)
     {
         Frac32[,] extendedMatrix = new Frac32[_ordinal, _ordinal + 1];
         for (int i = 0; i < _ordinal; i++)
@@ -99,76 +103,61 @@ public class LinearCastingMethodProvider : IProvider
         //_extendedMatrix = extendedMatrix;
         return Task.FromResult<Frac32[,]>(extendedMatrix);
     }
-    
+    /// <summary>
+    /// Разделяет расширенную матрицу на основную матрицу и вектор свободных членов.
+    /// </summary>
+    /// <param name="extended">Расширенная матрица.</param>
+    /// <param name="common">Основная матрица (выходной параметр).</param>
+    /// <param name="freed">Вектор свободных членов (выходной параметр).</param>
+    /// <returns>True, если разделение прошло успешно (матрица не пустая и имеет правильную структуру), иначе False.</returns>
+    private static void FromExtendedMatrix(ref Frac32[,] extended, out Frac32[,] common, out Frac32[] freed)
+    {
+        common = null!;
+        freed = null!;
+
+        if (extended == null!)
+        {
+            return;
+        }
+
+        int rows = extended.GetLength(0);
+        int cols = extended.GetLength(1);
+
+        if (rows == 0 || cols < 2)
+        {
+            return;
+        }
+
+        common = new Frac32[rows, cols - 1];
+        freed = new Frac32[rows];
+
+        for (int i = 0; i < rows; i++)
+        {
+            for (int j = 0; j < cols - 1; j++)
+            {
+                common[i, j] = extended[i, j];
+            }
+            freed[i] = extended[i, cols - 1];
+        }
+    }
+    /// <summary>
+    /// Записывает данные в поле системы линейных уравнений
+    /// </summary>
+    /// <param name="vectors">Кортеж векторов матрицы</param>
     private Task WriteSystemToStringAsync((Frac32[,] matrix, Frac32[] vector) vectors)
     {
         _model!.MainSystemFormula = _writer.MakeCases(vectors.matrix, vectors.vector);
         return Task.CompletedTask;
     }
-
+    /// <summary>
+    /// Дописывает данные в поле решения систем
+    /// линейных уравнений
+    /// </summary>
+    /// <param name="text">Текст рещения в LaTeX</param>
     private Task WriteSolutionToStringAsync(string text)
     {
         _model!.MainSystemSolutionFormula += text + @" \\ ";
         return Task.CompletedTask;
-    }
-    
-    private (Frac32[,] matrix, Frac32[] constants) InitializeRowEchelon((Frac32[,] matrix, Frac32[] constants) vectors)
-    {
-        int rows = vectors.matrix.GetLength(0);
-        int cols = vectors.matrix.GetLength(1);
-        Frac32[,] tempMatrix = (Frac32[,])vectors.matrix.Clone();
-        Frac32[] tempConstants = (Frac32[])vectors.constants.Clone();
-
-        int currentRow = 0;
-        for (int currentCol = 0; currentCol < cols && currentRow < rows; currentCol++)
-        {
-            // Поиск ненулевого элемента в текущем столбце
-            int pivotRow = FindFreeRow(tempMatrix, currentRow, currentCol);
-            
-            // Все элементы в столбце нулевые
-            if (pivotRow == -1) continue; 
-
-            if (pivotRow != currentRow)
-            {
-                SwapRowsByIndexes(tempMatrix, tempConstants, currentRow, pivotRow);
-            }
-
-            // Нормализация ведущей строки
-            Frac32 pivotElement = tempMatrix[currentRow, currentCol];
-            if (pivotElement != Frac32.Positive)
-            {
-                for (int col = currentCol; col < cols; col++)
-                {
-                    tempMatrix[currentRow, col] /= pivotElement;
-                    tempMatrix[currentRow, col].Clear();
-                }
-                tempConstants[currentRow] /= pivotElement;
-                tempConstants[currentCol].Clear();
-            }
-
-            // Обнуление элементов ниже ведущего
-            for (int row = currentRow + 1; row < rows; row++)
-            {
-                Frac32 factor = tempMatrix[row, currentCol];
-                for (int col = currentCol; col < cols; col++)
-                {
-                    tempMatrix[row, col] -= factor * tempMatrix[currentRow, col];
-                    tempMatrix[row, col].Clear();
-                }
-                tempConstants[row] -= factor * tempConstants[currentRow];
-                tempConstants[row].Clear();
-            }
-
-            currentRow++;
-        }
-
-        WriteSolutionToStringAsync(_writer.MakeText("Ступенчатая матрица"));
-        WriteSolutionToStringAsync(_writer.MakePMatrix(tempMatrix, tempConstants));
-        WriteSolutionToStringAsync(_writer.MakeText("Характеристики системы"));
-        WriteSolutionToStringAsync($@"r({_writer.Name}) = {Rank(tempMatrix)} \\" + 
-                                   $@"n({_writer.Name}) = {_ordinal}");
-        
-        return (tempMatrix, tempConstants);
     }
     /// <summary>
     /// Ищет свободную строку в матрице по индексу столбца
@@ -267,7 +256,7 @@ public class LinearCastingMethodProvider : IProvider
     /// </summary>
     public bool IsConsistent(Frac32[,] commonMatrix, Frac32[] freeVector)
     {
-        Frac32[,] extended = InitializeExtendedMatrixAsync((commonMatrix, freeVector)).Result;
+        Frac32[,] extended = ToExtendedMatrixAsync((commonMatrix, freeVector)).Result;
         return Rank(commonMatrix) == Rank(extended);
     }
 
@@ -302,7 +291,7 @@ public class LinearCastingMethodProvider : IProvider
     private (Frac32[,] rowEchelon, Frac32[,] augmentedMatrix) GaussianElimination(Frac32[,] matrix, Frac32[] constants)
     {
         // Реализация преобразования матрицы...
-        return (matrix, InitializeExtendedMatrixAsync((matrix, constants)).Result);
+        return (matrix, ToExtendedMatrixAsync((matrix, constants)).Result);
     }
     
     /// <summary>
@@ -344,7 +333,13 @@ public class LinearCastingMethodProvider : IProvider
         return fsr;
     }
     
-    public (Frac32[,], Frac32[]) FindSolutions(Frac32[,] matrix, Frac32[] freeTerms)
+    /// <summary>
+    /// Ищет решения для системы линейных уравнений
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// Количество строк матрицы не совпадает с длиной вектора свободных членов.
+    /// </exception>
+    private void FindSolutions(Frac32[,] matrix, Frac32[] freeTerms)
     {
         int rows = matrix.GetLength(0);
         int cols = matrix.GetLength(1); // количество переменных
@@ -361,7 +356,7 @@ public class LinearCastingMethodProvider : IProvider
             {
                 extendedMatrix[i, j] = matrix[i, j];
             }
-            extendedMatrix[i, cols] = freeTerms[i]; // Записываем свободные члены в последний столбец
+            extendedMatrix[i, cols] = freeTerms[i];
         }
 
         // 2. Прямой ход
@@ -389,14 +384,9 @@ public class LinearCastingMethodProvider : IProvider
             Frac32 free = extendedMatrix[i, i];
             if (free.Enumerator == 0)
             {
-                // Обработка случая, когда главный элемент равен нулю
-                // (возможно, система несовместна или имеет бесконечно много решений)
-                // В этом простом примере -> null.
-                // В реализации нужно обрабатывать такие ситуации более корректно.
-                return (null!, null!);
+                return;
             }
             
-
             for (int j = i; j <= cols; j++)
             {
                 extendedMatrix[i, j] /= free;
@@ -418,6 +408,10 @@ public class LinearCastingMethodProvider : IProvider
             WriteSolutionToStringAsync(_writer.MakeText("Зануление элементов"));
             WriteSolutionToStringAsync(_writer.MakePMatrix(extendedMatrix));
         }
+
+        WriteSolutionToStringAsync(_writer.MakeText("Характеристики системы"));
+        WriteSolutionToStringAsync(@$"n({_writer.Name}) = {_ordinal} \\");
+        WriteSolutionToStringAsync(@$"r({_writer.Name}) = {Rank(matrix)} \\");
 
         // 3. Обратный ход
         for (int i = rows - 1; i >= 0; i--)
@@ -442,11 +436,11 @@ public class LinearCastingMethodProvider : IProvider
             solution[i] = extendedMatrix[i, cols];
             solution[i].Clear();
         }
-        WriteSolutionToStringAsync(_writer.MakeText("Извлечение решения"));
-        WriteSolutionToStringAsync(_writer.MakePMatrix(extendedMatrix));
-        WriteSolutionToStringAsync(_writer.MakeCases(matrix, solution));
         
-        return (matrix, solution); //Возвращаем исходную матрицу, и решение.
+        FromExtendedMatrix(ref extendedMatrix, out Frac32[,] coefficients, out Frac32[] constants);
+        
+        WriteSolutionToStringAsync(_writer.MakeText("Извлечение решения"));
+        WriteSolutionToStringAsync(_writer.MakeCases(coefficients, constants));
     }
     
     private void SwapRows(Frac32[,] matrix, int row1, int row2)

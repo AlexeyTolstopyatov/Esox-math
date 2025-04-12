@@ -139,19 +139,23 @@ public class MatrixGenerator
             for (int j = 0; j < _ordinal; j++)
             {
                 // Генерация дроби с случайным числителем и знаменателем 1
-                matrix[i, j] = new Frac32(Random.Shared.Next(_minimum, _maximum));
+                matrix[i, j] = new Frac32(
+                    Random.Shared.Next(_minimum, _maximum),
+                    Random.Shared.Next(1, _maximum));
+                //matrix[i, j].Clear();
             }
         }
 
         // Процесс ортогонализации
         for (int i = 0; i < _ordinal; i++)
         {
-            // // Нормализация текущего вектора
-            // Frac32 norm = Frac32.Sqrt(Frac32.Scalar(matrix, i, i, _ordinal));
-            // for (int k = 0; k < _ordinal; k++)
-            // {
-            //     matrix[i, k] /= norm;
-            // }
+            // Нормализация текущего вектора
+            Frac32 norm = Frac32.Sqrt(Frac32.Scalar(matrix, i, i, _ordinal));
+            for (int k = 0; k < _ordinal; k++)
+            {
+                matrix[i, k] /= norm;
+                //matrix[i, k].Clear();
+            }
 
             // Ортогонализация последующих векторов
             for (int j = i + 1; j < _ordinal; j++)
@@ -161,6 +165,7 @@ public class MatrixGenerator
                 for (int k = 0; k < _ordinal; k++)
                 {
                     matrix[j, k] -= projection * matrix[i, k];
+                    //matrix[j, k].Clear();
                 }
             }
         }
@@ -169,6 +174,7 @@ public class MatrixGenerator
         for (int i = 0; i < _ordinal; ++i)
         {
             freed[i] = new Frac32(Random.Shared.Next(_minimum, _maximum));
+            //freed[i].Clear();
         }
     
         return (matrix, freed);

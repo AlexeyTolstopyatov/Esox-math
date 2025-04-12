@@ -94,29 +94,17 @@ public class LaTeXFrac32Markup
 
             // Форматирование значения !
             
-            Frac32 absCoeff = Frac32.Abs(coefficient);
+            Frac32 absolute = Frac32.Abs(coefficient);
             string value = "";
             
-            // Исправлено: точное сравнение с единицей
-            if (absCoeff != Frac32.Positive)
+            if (absolute != Frac32.Positive)
             {
-                value = FormatFraction(absCoeff);
+                value = FormatFraction(absolute);
             }
 
             parts.Add($"{sign}{value}x_{i + 1}");
         }
         
-        // // Обработка нулевого уравнения
-        // if (parts.Count == 0)
-        // {
-        //     return constant.ToString();
-        // }
-        //
-        // // Форматирование правой части
-        // string rhs = constant.ToString();
-        // return $"{string.Join("", parts)} = {rhs}";
-
-        // Обработка нулевого уравнения 2.0
         if (parts.Count == 0)
         {
             return $"0 = {FormatFraction(constant)}";
@@ -200,10 +188,5 @@ public class LaTeXFrac32Markup
         sb.Append(@"} ");
         
         return sb.ToString();
-    }
-
-    private string FormatNumber(Frac32 number)
-    {
-        return number.ToString();
     }
 }
