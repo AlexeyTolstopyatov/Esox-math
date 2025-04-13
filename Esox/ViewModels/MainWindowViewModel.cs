@@ -28,16 +28,17 @@ public class MainWindowViewModel : NotifyPropertyChanged
     // Левая панель -> Уточнения для задания матрицы
     private int _mainSystemOrdinal;
     private bool _homogenousSystem;
-    private bool _singularSystem;
+    private bool _undefinedSystem;
     private bool _consistentSystem;
-    private bool _singleSystemResult;
+    private bool _kramerMethodFlag;
     // Левая панель -> Установка ограничений
     private bool _allowHomogenousSystem;
-    private bool _allowDegenerativeSystem;
+    private bool _allowUndefinedSystem;
     private bool _allowSolutionCharacteristics;
     // Левая панель -> Установка режима генерации
     private LinearCastingGeneratorType _generatorTypeMode;
-    
+    private int _mainSystemRequiredRank;
+    private int _allowedMaximum;
     #endregion
     
     #region View Bingings
@@ -57,10 +58,10 @@ public class MainWindowViewModel : NotifyPropertyChanged
     /// Система линейных уравнений должна иметь только одно решение
     /// (пересечение всех плоскостей только в одной точке)
     /// </summary>
-    public bool SingleSystemResult
+    public bool KramerMethodFlag
     {
-        get => _singleSystemResult;
-        set => SetField(ref _singleSystemResult, value);
+        get => _kramerMethodFlag;
+        set => SetField(ref _kramerMethodFlag, value);
     }
     /// <summary>
     /// Разрешает использовать флаг
@@ -85,10 +86,10 @@ public class MainWindowViewModel : NotifyPropertyChanged
     /// Разрешить использовать флаг вырожденной
     /// системы линейных уравнений
     /// </summary>
-    public bool AllowDegenerativeSystem
+    public bool AllowUndefinedSystem
     {
-        get => _allowDegenerativeSystem;
-        set => SetField(ref _allowDegenerativeSystem, value);
+        get => _allowUndefinedSystem;
+        set => SetField(ref _allowUndefinedSystem, value);
     }
     /// <summary>
     /// Однородная система линейных уравнений
@@ -99,12 +100,12 @@ public class MainWindowViewModel : NotifyPropertyChanged
         set => SetField(ref _homogenousSystem, value);
     }
     /// <summary>
-    /// Вырожденная система линейных уравнений
+    /// Неопределенная система линейных уравнений
     /// </summary>
-    public bool DegenerativeSystem
+    public bool UndefinedSystem
     {
-        get => _singularSystem;
-        set => SetField(ref _singularSystem, value);
+        get => _undefinedSystem;
+        set => SetField(ref _undefinedSystem, value);
     }
     /// <summary>
     /// Совместная система линейных уравнений
@@ -116,7 +117,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
         set
         {
             SetField(ref _consistentSystem, value);
-            AllowDegenerativeSystem = _consistentSystem;
+            AllowUndefinedSystem = _consistentSystem;
             AllowHomogenousSystem = _consistentSystem;
             AllowSolutionCharacteristics = _consistentSystem;
         }
@@ -137,7 +138,12 @@ public class MainWindowViewModel : NotifyPropertyChanged
         get => _mainSystemOrdinal;
         set => SetField(ref _mainSystemOrdinal, value);
     }
-    
+
+    public int MainSystemRequiredRank
+    {
+        get => _mainSystemRequiredRank;
+        set => SetField(ref _mainSystemRequiredRank, value);
+    }
     #endregion
 
     #region Pirvate Command storage
@@ -171,15 +177,17 @@ public class MainWindowViewModel : NotifyPropertyChanged
     }
     private void Make()
     {
-        MethodFactory.Requirements requirements = new()
+        MethodFactory.MethodParameters methodParameters = new()
         {
-            MakeSingleSolution = SingleSystemResult,
+            KramerMethodRequired = KramerMethodFlag,
+            MakeConsistent = ConsistentSystem,
             MakeHomogenousInstance = HomogenousSystem,
-            MakeSingularInstance = DegenerativeSystem,
+            MakeUndefinedInstance = UndefinedSystem,
             Ordinal = MainSystemOrdinal,
+            Rank = MainSystemRequiredRank,
             GeneratorTypeType = GeneratorTypeMode
         };
-        IProvider method = MethodFactory.MakeMethodProvider(requirements);
+        IProvider method = MethodFactory.MakeMethodProvider(methodParameters);
         
         ComputesPage = new LatexReportView
         {

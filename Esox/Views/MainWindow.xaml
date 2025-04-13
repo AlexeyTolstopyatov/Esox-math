@@ -69,9 +69,9 @@
                                 Width="150"
                                 Content="Однородная"/>
                             <CheckBox
-                                IsEnabled="{Binding AllowDegenerativeSystem}"
-                                IsChecked="{Binding DegenerativeSystem}"
-                                Content="Вырожденная"
+                                IsEnabled="{Binding AllowUndefinedSystem}"
+                                IsChecked="{Binding UndefinedSystem}"
+                                Content="Неопределенная"
                                 Margin="5"
                                 Width="150"/>
                         </StackPanel>
@@ -88,7 +88,7 @@
                                 BorderBrush="{DynamicResource RegionBrush}"
                                 Content="Правило Крамера"
                                 IsEnabled="{Binding AllowSolutionCharacteristics}"
-                                IsChecked="{Binding SingleSystemResult}"
+                                IsChecked="{Binding KramerMethodFlag}"
                                 Margin="5"
                                 Width="150"/>
                         </StackPanel>
@@ -108,9 +108,21 @@
                                 SelectedIndex="{Binding GeneratorTypeMode}">
                                 <ComboBoxItem Content="Метод Ортогонализации"/>
                                 <ComboBoxItem Content="Метод Треугольных матриц"/>
-                                <ComboBoxItem Content="Создание линейной зависимости"/>
                                 <ComboBoxItem Content="Случайные коэффициенты"/>
                             </ComboBox>
+                            <Label
+                                Opacity="0.8"
+                                Content="Ожидаемый Ранг матрицы"
+                                BorderBrush="{DynamicResource RegionBrush}"
+                                HorizontalAlignment="Left"
+                                IsEnabled="{Binding AllowSolutionCharacteristics}"/>
+                            <hc:NumericUpDown
+                                Margin="5"
+                                Minimum="1"
+                                Maximum="9"
+                                Value="{Binding MainSystemRequiredRank}"
+                                IsEnabled="{Binding AllowSolutionCharacteristics}">
+                            </hc:NumericUpDown>
                         </StackPanel>
                     </StackPanel>
                     <!-- Кнопка -->

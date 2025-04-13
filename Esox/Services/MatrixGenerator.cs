@@ -50,6 +50,78 @@ public class MatrixGenerator
         for(int i = 0; i < vector.Length; ++i)
             vector[i] = Frac32.Zero;
     }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns></returns>
+    public (Frac32[,], Frac32[]) GenerateOrthogonalFrac32MatrixC()
+    {
+        Frac32[,] matrix = new Frac32[_ordinal, _ordinal];
+        Frac32[] constants = new Frac32[_ordinal];
+        
+        for (int i = 0; i < _ordinal; i++)
+        {
+            for (int j = 0; j < _ordinal; j++)
+            {
+                // Генерация дроби с случайным числителем и знаменателем 1
+                matrix[i, j] = new Frac32(
+                    Random.Shared.Next(_minimum, _maximum));
+                if (matrix[i, j] == Frac32.Zero)
+                    matrix[i, j] = Frac32.Positive;
+                    
+                matrix[i, j].Clear();
+            }
+        }
+        
+        for (int i = 0; i < _ordinal; i++)
+        {
+            // Нормализация текущего вектора
+            Frac32 norm = Frac32.Sqrt(Frac32.Scalar(matrix, i, i, _ordinal));
+            if (norm.Enumerator == 0) // Проверка на то, что norm == 0
+            {
+                for (int j = 0; j < _ordinal; j++)
+                {
+                    matrix[i, j] = new Frac32(
+                        Random.Shared.Next(_minimum, _maximum),
+                        Random.Shared.Next(1, _maximum));
+                    matrix[i, j].Clear();
+                }
+                i = -1;
+                continue; // Перейти к следующей итерации внешнего цикла
+            }
+            
+            for (int k = 0; k < _ordinal; k++)
+            {
+                matrix[i, k] /= norm;
+                matrix[i, k].Clear();
+            }
+        
+            // Ортогонализация *относительно* текущего вектора *всех последующих*
+            for (int j = i + 1; j < _ordinal; j++)  // Для каждого последующего вектора...
+            {
+                Frac32 projection = Frac32.Scalar(matrix, i, j, _ordinal); // ...вычисляем проекцию на текущий...
+                for (int k = 0; k < _ordinal; k++)
+                {
+                    matrix[j, k] -= projection * matrix[i, k]; // ...и вычитаем ее
+                    matrix[j, k].Clear();
+                }
+            }
+        }
+        if (_homogenous)
+        {
+            Initialize(ref constants);
+            return (matrix, constants);
+        }
+        // Генерация свободных членов
+        for (int i = 0; i < _ordinal; ++i)
+        {
+            constants[i] = new Frac32(Random.Shared.Next(_minimum, _maximum));
+            constants[i].Clear();
+        }
+
+        return (matrix, constants);
+    }
     
     /// <summary>
     /// Создает матрицу коэффициентов и постоянных
@@ -68,9 +140,8 @@ public class MatrixGenerator
             {
                 // Генерация дроби с случайным числителем и знаменателем 1
                 matrix[i, j] = new Frac32(
-                    Random.Shared.Next(_minimum, _maximum),
-                    Random.Shared.Next(1, _maximum));
-                //matrix[i, j].Clear();
+                    Random.Shared.Next(_minimum, _maximum));
+                matrix[i, j].Clear();
             }
         }
 
@@ -82,7 +153,7 @@ public class MatrixGenerator
             for (int k = 0; k < _ordinal; k++)
             {
                 matrix[i, k] /= norm;
-                //matrix[i, k].Clear();
+                matrix[i, k].Clear();
             }
 
             // Ортогонализация последующих векторов
@@ -93,7 +164,7 @@ public class MatrixGenerator
                 for (int k = 0; k < _ordinal; k++)
                 {
                     matrix[j, k] -= projection * matrix[i, k];
-                    //matrix[j, k].Clear();
+                    matrix[j, k].Clear();
                 }
             }
         }
@@ -106,7 +177,7 @@ public class MatrixGenerator
         for (int i = 0; i < _ordinal; ++i)
         {
             freed[i] = new Frac32(Random.Shared.Next(_minimum, _maximum));
-            //freed[i].Clear();
+            freed[i].Clear();
         }
     
         return (matrix, freed);
@@ -163,7 +234,6 @@ public class MatrixGenerator
         {
             for (int j = i; j < _ordinal; j++)
             {
-                // Генерация случайной дроби с знаменателем 1
                 matrix[i, j] = new Frac32(Random.Shared.Next(_minimum, _maximum));
             }
         
@@ -202,12 +272,14 @@ public class MatrixGenerator
         return (matrix, freed);
     }
     /// <summary>
-    /// Создает 
+    /// Создает гарантированно несовместную
+    /// систему линейных алгебраических уравнений
+    /// (Последняя строка матрицы никогда не будет линейно
+    /// выраженна за счет других строк)
     /// </summary>
-    /// <param name="rank"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentException"></exception>
-    public (Frac32[,], Frac32[]) GenerateUndeterminedSystem(int rank)
+    /// <param name="rank">Ожидаемый ранг</param>
+    /// <exception cref="ArgumentException">Ранг должен быть меньше числа переменных</exception>
+    public (Frac32[,], Frac32[]) GenerateInConsistentFrac32Matrix(int rank)
     {
         if (rank >= _ordinal) 
             throw new ArgumentException("Ранг должен быть меньше числа переменных");
@@ -255,5 +327,72 @@ public class MatrixGenerator
         }
 
         return (coefficients, constants);
+    }
+    
+    /// <summary>
+    /// Создает гарантированно неопределенную
+    /// матрицу системы
+    /// </summary>
+    /// <param name="rank">Ожидаемый ранг</param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException">
+    /// Ранг матрицы должен быть строго меньше порядка матрицы
+    /// </exception>
+    public (Frac32[,], Frac32[]) GenerateUndefinedFrac32Matrix(int rank)
+    {
+        if (rank >= _ordinal || rank <= 0)
+        {
+            throw new ArgumentException("Ранг матрицы должен быть строго меньше порядка матрицы");
+        }
+
+        Frac32[,] matrix = new Frac32[_ordinal, _ordinal];
+        Frac32[] freed = new Frac32[_ordinal];
+
+        // Генерация линейно независимых строк
+        for (int i = 0; i < rank; i++)
+        {
+            for (int j = 0; j < _ordinal; j++)
+            {
+                matrix[i, j] = new Frac32(Random.Shared.Next(_minimum, _maximum), Random.Shared.Next(1, _maximum));
+                matrix[i, j].Clear();
+            }
+            freed[i] = new Frac32(Random.Shared.Next(_minimum, _maximum), Random.Shared.Next(1, _maximum));
+            freed[i].Clear();
+        }
+
+        // Генерация остальных строк как линейных комбинаций
+        for (int i = rank; i < _ordinal; i++)
+        {
+            // Случайные коэффициенты для линейной комбинации
+            Frac32[] coefficients = new Frac32[rank];
+            for (int k = 0; k < rank; k++)
+            {
+                coefficients[k] = new Frac32(Random.Shared.Next(_minimum, _maximum), Random.Shared.Next(1, _maximum));
+                coefficients[k].Clear();
+            }
+
+            // создание линейных комбинаций
+            for (int j = 0; j < _ordinal; j++)
+            {
+                Frac32 sum = new Frac32(0);
+                for (int k = 0; k < rank; k++)
+                {
+                    sum += coefficients[k] * matrix[k, j];
+                    sum.Clear(); // Важно!
+                }
+                matrix[i, j] = sum;
+            }
+
+            // линейная комбинация для вектора свободных членов
+            Frac32 freedSum = new Frac32(0);
+            for (int k = 0; k < rank; k++)
+            {
+                freedSum += coefficients[k] * freed[k];
+                freedSum.Clear(); // Важно!
+            }
+            freed[i] = freedSum;
+        }
+
+        return (matrix, freed);
     }
 }

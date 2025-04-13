@@ -4,11 +4,13 @@ namespace Esox.Services;
 
 public static class MethodFactory
 {
-    public class Requirements
+    public class MethodParameters
     {
         public int Ordinal;
-        public bool MakeSingleSolution;
-        public bool MakeSingularInstance;
+        public int Rank;
+        public bool KramerMethodRequired;
+        public bool MakeConsistent;
+        public bool MakeUndefinedInstance;
         public bool MakeHomogenousInstance;
         public LinearCastingGeneratorType GeneratorTypeType;
     }
@@ -17,15 +19,20 @@ public static class MethodFactory
     /// Создает <see cref="IProvider"/> на основе
     /// переданных параметров.
     /// </summary>
-    /// <param name="reqs"></param>
+    /// <param name="reqs">Структура требований</param>
     /// <returns></returns>
-    public static IProvider MakeMethodProvider(Requirements reqs)
+    public static IProvider MakeMethodProvider(MethodParameters reqs)
     {
-        if (reqs.MakeSingleSolution && !reqs.MakeSingularInstance)
+        if (reqs.KramerMethodRequired && 
+            !reqs.MakeUndefinedInstance)
             return new KramerMethodProvider(reqs.Ordinal);
 
         return new LinearCastingMethodProvider(
-            reqs.Ordinal, reqs.GeneratorTypeType);
+            reqs.Ordinal,
+            reqs.Rank,
+            reqs.GeneratorTypeType, 
+            reqs.MakeConsistent,
+            reqs.MakeUndefinedInstance);
     }
 
     /// <summary>
