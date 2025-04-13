@@ -10,24 +10,28 @@ public class MatrixGenerator
     private readonly int _ordinal;
     private readonly int _minimum;
     private readonly int _maximum;
-    public MatrixGenerator(int ordinal)
+    private readonly bool _homogenous;
+    public MatrixGenerator(int ordinal, [Optional] bool homo)
     {
         _ordinal = ordinal;
         _maximum = 10;
         _minimum = -_maximum;
+        _homogenous = homo;
     }
-
-    public MatrixGenerator(int ordinal, int minimum, int maximum)
+    
+    public MatrixGenerator(int ordinal, int minimum, int maximum, [Optional] bool homo)
     {
         if (maximum <= minimum)
             throw new RankException("Доигрался, гнида?");
         _ordinal = ordinal;
         _maximum = maximum;
         _minimum = minimum;
+        _homogenous = homo;
     }
 
     /// <summary>
-    /// Инициализирует матрицу коэффициентов
+    /// Инициализирует матрицу коэффициентов.
+    /// Заполняет нулями.
     /// </summary>
     /// <param name="matrix"></param>
     public static void Initialize(ref Frac32[,] matrix)
@@ -37,97 +41,21 @@ public class MatrixGenerator
             matrix[i, j] = Frac32.Zero;
     }
 
+    /// <summary>
+    /// Заполняет вектор-столбец нулями
+    /// </summary>
+    /// <param name="vector"></param>
     public static void Initialize(ref Frac32[] vector)
     {
         for(int i = 0; i < vector.Length; ++i)
             vector[i] = Frac32.Zero;
     }
-    /// <summary>
-    /// Создает матрицу методом треугольных матриц.
-    /// Изначально генерируется Единичная матрица
-    /// порядка <see cref="_ordinal"/>
-    /// и линейно преобразуется до неузноваемости.
-    /// </summary>
-    public (double[,], double[]) GenerateTriangleF64Matrix()
-    {
-        double[,] matrix = new double[_ordinal, _ordinal];
     
-        // Заполнение верхней треугольной матрицы
-        for (int i = 0; i < _ordinal; i++)
-        {
-            for (int j = i; j < _ordinal; j++)
-            {
-                matrix[i, j] = Math.Round((double)Random.Shared.Next(_minimum, _maximum));
-            }
-            matrix[i, i] = (Random.Shared.Next(_minimum, _maximum) == 0) 
-                ? 1 
-                : -1; // гарантия ненулевого элемента
-        }
-
-        // случайные комбинации строк для "перемешивания"
-        for (int i = 0; i < _ordinal; i++)
-        {
-            for (int j = i + 1; j < _ordinal; j++)
-            {
-                double factor = Random.Shared.Next(_minimum, _maximum);
-                for (int k = 0; k < _ordinal; k++)
-                {
-                    matrix[j, k] += factor * matrix[i, k];
-                }
-            }
-        }
-            
-        double[] freed = new double[_ordinal];
-
-        for (int i = 0; i < _ordinal; ++i)
-        {
-            freed[i] = Math.Round((double)Random.Shared.Next(_minimum, _maximum));
-        }
-        
-        return (matrix, freed);
-    }
     /// <summary>
-    /// Создает матрицу методом ортогонализации
-    /// (алгоритм Грама-Шмидта)
-    /// преобразует последовательность линейно независимых векторов
-    /// в ортонормированную систему векторов
-    /// причём так, что каждый вектор есть линейная комбинация.
+    /// Создает матрицу коэффициентов и постоянных
+    /// методом Ортогонализации Грама-Шмидта
     /// </summary>
-    public (double[,], double[]) GenerateOrthogonalF64Matrix()
-    {
-        double[,] matrix = new double[_ordinal, _ordinal];
-        for (int i = 0; i < _ordinal; i++)
-        {
-            for (int j = 0; j < _ordinal; j++)
-            {
-                matrix[i, j] = Math.Round((double)Random.Shared.Next(_minimum, _maximum));
-            }
-
-            for (int j = 0; j < i; j++)
-            {
-                double dotProduct = 0;
-                for (int k = 0; k < _ordinal; k++)
-                {
-                    dotProduct += matrix[i, k] * matrix[j, k];
-                }
-
-                for (int k = 0; k < _ordinal; k++)
-                {
-                    matrix[i, k] -= dotProduct * matrix[j, k];
-                }
-            }
-        }
-
-        double[] freed = new double[_ordinal];
-
-        for (int i = 0; i < _ordinal; ++i)
-        {
-            freed[i] = Math.Round((double)Random.Shared.Next(_minimum, _maximum));
-        }
-        
-        return (matrix, freed);
-    }
-    
+    /// <returns>Матрицу коэффициентов и вектор свободных членов</returns>
     public (Frac32[,], Frac32[]) GenerateOrthogonalFrac32Matrix()
     {
         Frac32[,] matrix = new Frac32[_ordinal, _ordinal];
@@ -169,7 +97,11 @@ public class MatrixGenerator
                 }
             }
         }
-
+        if (_homogenous)
+        {
+            Initialize(ref freed);
+            return (matrix, freed);
+        }
         // Генерация свободных членов
         for (int i = 0; i < _ordinal; ++i)
         {
@@ -180,6 +112,13 @@ public class MatrixGenerator
         return (matrix, freed);
     }
 
+    /// <summary>
+    /// Создает матрицу псевдо-случайными коэффициентами
+    /// </summary>
+    /// <returns>
+    /// Вектор-столбец свободных членов
+    /// и матрицу коэффициентов
+    /// </returns>
     public (Frac32[,], Frac32[]) GenerateRandomFrac32Matrix()
     {
         Frac32[,] matrix = new Frac32[_ordinal, _ordinal];
@@ -189,12 +128,31 @@ public class MatrixGenerator
         for(int j = 0; j < _ordinal; ++j)
             matrix[i,j] = new(Random.Shared.Next(_minimum, _maximum));
 
+        if (_homogenous)
+        {
+            Initialize(ref constants);
+            return (matrix, constants);
+        }
         
         for (int i = 0; i < _ordinal; ++i)
             constants[i] = new(Random.Shared.Next(_minimum, _maximum));
         
         return (matrix, constants);
     }
+    
+    /// <summary>
+    /// Создает линейно-преобразованную
+    /// треугольную матрицу коэффициентов и вектор-столбец
+    /// свободных членов
+    /// </summary>
+    /// <remarks>
+    /// Определитель единичной треугольной матрицы
+    /// всегда равен 1 или -1
+    /// </remarks>
+    /// <returns>
+    /// Вектор-столбец свободных членов
+    /// и матрицу коэффициентов
+    /// </returns>
     public (Frac32[,], Frac32[]) GenerateTriangleFrac32Matrix()
     {
         Frac32[,] matrix = new Frac32[_ordinal, _ordinal];
@@ -232,7 +190,10 @@ public class MatrixGenerator
         
         Frac32[] freed = new Frac32[_ordinal];
         Initialize(ref freed);
-
+        
+        if (_homogenous)
+            return (matrix, freed);
+        
         for (int i = 0; i < _ordinal; ++i)
         {
             freed[i] = new Frac32(Random.Shared.Next(_minimum, _maximum));
@@ -240,7 +201,12 @@ public class MatrixGenerator
     
         return (matrix, freed);
     }
-    
+    /// <summary>
+    /// Создает 
+    /// </summary>
+    /// <param name="rank"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
     public (Frac32[,], Frac32[]) GenerateUndeterminedSystem(int rank)
     {
         if (rank >= _ordinal) 
@@ -261,13 +227,30 @@ public class MatrixGenerator
                 coefficients[i, j] = coefficients[i - rank, j];
             }
         }
-
+        // Случайные линейные комбинации строк
+        for (int i = 0; i < _ordinal; i++)
+        {
+            for (int j = i + 1; j < _ordinal; j++)
+            {
+                Frac32 factor = new(Random.Shared.Next(_minimum, _maximum));
+            
+                for (int k = 0; k < _ordinal; k++)
+                {
+                    coefficients[j, k] += factor * coefficients[i, k];
+                }
+            }
+        }
         Frac32[] constants = new Frac32[_ordinal];
         Initialize(ref constants);
+
+        if (_homogenous)
+            return (coefficients, constants);
+        
+        
         for (int i = 0; i < _ordinal; i++)
         {
             constants[i] = (i < rank) 
-                ? new(Random.Shared.Next(1, 10)) 
+                ? new(Random.Shared.Next(_minimum, _maximum)) 
                 : constants[i - rank];
         }
 

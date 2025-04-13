@@ -44,6 +44,14 @@ public class LaTeXFrac32Markup
         
         return macro;
     }
+    /// <summary>
+    /// Создает разметку LaTeX для системы
+    /// линейных уравнений
+    /// </summary>
+    /// <param name="common">Матрица коэффициентов</param>
+    /// <param name="freed">Свободный столбец</param>
+    /// <param name="otherName">Имя объекта</param>
+    /// <exception cref="ArgumentException">Количество уравнений и свободных членов не совпадает</exception>
     public string MakeCases(Frac32[,] common, Frac32[] freed, [Optional] string otherName)
     {
         if (common.GetLength(0) != freed.Length)
@@ -128,10 +136,9 @@ public class LaTeXFrac32Markup
     /// Создает разметку расширенной матрицы
     /// из общей матрицы и свободных коэффициентов 
     /// </summary>
-    /// <param name="common"></param>
-    /// <param name="freed"></param>
-    /// <param name="otherName"></param>
-    /// <returns></returns>
+    /// <param name="common">Основная матрица коэффициентов</param>
+    /// <param name="freed">Свободный вектор-столбец</param>
+    /// <param name="otherName">Имя объекта</param>
     public string MakePMatrix(Frac32[,] common, Frac32[] freed, [Optional] string otherName)
     {
         // build matrix
@@ -164,7 +171,12 @@ public class LaTeXFrac32Markup
         
         return sb.ToString();
     }
-
+    /// <summary>
+    /// Создает разметку расширенной матрицы
+    /// из общей матрицы и свободных коэффициентов 
+    /// </summary>
+    /// <param name="matrix">матрица коэффициентов</param>
+    /// <param name="otherName">Имя объекта</param>
     public string MakePMatrix(Frac32[,] matrix, [Optional] string otherName)
     {
         // build matrix

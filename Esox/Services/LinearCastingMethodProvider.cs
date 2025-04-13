@@ -225,7 +225,7 @@ public class LinearCastingMethodProvider : IProvider
             return _writer.MakeText("Тривиальное решение: все переменные равны нулю.");
 
         // Нахождение ФСР
-        var fsr = FindFundamentalCases(rowEchelon, rank);
+        List<Frac32[]> fsr = FindFundamentalCases(rowEchelon, rank);
         WriteSolutionToStringAsync(_writer.MakeText("Фундаментальная совокупность решений"));
         //WriteSolutionToStringAsync(_writer.MakePMatrix(rowEchelon));
         return "";
@@ -243,7 +243,7 @@ public class LinearCastingMethodProvider : IProvider
 
         // Общее решение: частное + ФСР
         //var particular = FindParticularSolution(rowEchelon);
-        var fsr = FindFundamentalCases(GaussianElimination(coefficients, null).rowEchelon, rank);
+        var fsr = FindFundamentalCases(GaussianElimination(coefficients, null!).rowEchelon, rank);
 
         WriteSolutionToStringAsync(_writer.MakeText("Общее решение"));
         //WriteSolutionToStringAsync(_writer.MakeCases(coefficients, particular));
@@ -408,11 +408,15 @@ public class LinearCastingMethodProvider : IProvider
             WriteSolutionToStringAsync(_writer.MakeText("Зануление элементов"));
             WriteSolutionToStringAsync(_writer.MakePMatrix(extendedMatrix));
         }
-
         WriteSolutionToStringAsync(_writer.MakeText("Характеристики системы"));
         WriteSolutionToStringAsync(@$"n({_writer.Name}) = {_ordinal} \\");
-        WriteSolutionToStringAsync(@$"r({_writer.Name}) = {Rank(matrix)} \\");
+        WriteSolutionToStringAsync(@$"r({_writer.Name}) = {Rank(extendedMatrix)} \\");
 
+        // Проверить основную и расширенную матрицу
+        // Если SingleSolutionExists(ref extendedMatrix)...
+        // Продолжить поиск решений.
+        // Иначе искать н-ФСР
+        
         // 3. Обратный ход
         for (int i = rows - 1; i >= 0; i--)
         {
