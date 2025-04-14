@@ -209,7 +209,7 @@ public class LinearCastingMethodProvider : IProvider
     /// в нормальной фундаментальной совокупности решений
     /// </summary>
     /// <param name="extendedMatrix">матрица коэффициентов</param>
-    public static (int[], int[]) FindBasisAndFreeVariables(ref Frac32[,] extendedMatrix)
+    public static (int[], int[]) FindParameterIndexes(ref Frac32[,] extendedMatrix)
     {
         int rows = extendedMatrix.GetLength(0);
         int cols = extendedMatrix.GetLength(1);
@@ -245,26 +245,24 @@ public class LinearCastingMethodProvider : IProvider
     private void FindFundamentalCases(ref Frac32[,] extendedMatrix)
     {
         (int[] baseParameters, int[] freeParameters) parameters = 
-            FindBasisAndFreeVariables(ref extendedMatrix);
+            FindParameterIndexes(ref extendedMatrix);
         FromExtendedMatrix(ref extendedMatrix, out Frac32[,] matrix, out Frac32[] freed);
         
         int freeParametersCount = parameters.freeParameters.Length;
         int baseParametersCount = parameters.baseParameters.Length;
 
         List<Frac32[]> fsr = new();
-        Frac32[] particularSolution = new Frac32[matrix.GetLength(1) - 1]; // Частное решение
+        Frac32[] particularSolution = new Frac32[matrix.GetLength(1)]; // Частное решение
 
         // 1. частное решение (все свободные переменные = 0)
-        for (int i = 0; i < matrix.GetLength(1) - 1; i++)
+        for (int i = 0; i < matrix.GetLength(1); i++)
         {
             if (parameters.baseParameters.Contains(i))
             {
                 int rowIndex = -1;
                 for (int r = 0; r < matrix.GetLength(0); r++)
                 {
-                    if (matrix[r, i].Enumerator != 1 || matrix[r, i].Denominator != 1) 
-                        continue;
-                    
+                    if (matrix[r, i].Enumerator != 1 || matrix[r, i].Denominator != 1) continue;
                     rowIndex = r;
                     break;
                 }
@@ -336,25 +334,17 @@ public class LinearCastingMethodProvider : IProvider
             }
         }
 
-        WriteSolutionToStringAsync(_writer.MakeText($"Фундаментальная совокупность решений системы"));
+        WriteSolutionToStringAsync(_writer.MakeText($"Нормальная-Фундаментальная совокупность решений системы"));
         WriteSolutionToStringAsync(_writer.MakePMatrix(fundament, $"{_writer.Name}_{{fnd}}"));
-        
+        PrintParticularSolution(particularSolution);
     }
 
-    public static void PrintParticularSolution(Frac32[] particularSolution)
+    private void PrintParticularSolution(Frac32[] particularSolution)
     {
-        if (particularSolution != null && particularSolution.Length > 0)
-        {
-            Console.WriteLine("Particular Solution:");
-            Console.Write("[");
-            foreach (var val in particularSolution)
-            {
-                Console.Write($"{val} ");
-            }
-
-            Console.Write("] ");
-            Console.WriteLine();
-        }
+        if (particularSolution.Length <= 0)
+            return;
+        // print vector
+        WriteSolutionToStringAsync($"{_writer.Name}_{{part}} = " + _writer.MakePVectorColumn(particularSolution));
     }
 
     /// <summary>
@@ -457,15 +447,10 @@ public class LinearCastingMethodProvider : IProvider
             Frac32 free = extendedMatrix[i, i];
             if (free.Enumerator == 0)
             {
-                // Проверить основную и расширенную матрицу
-                // Если SingleSolutionExists(ref extendedMatrix)...
-                // Продолжить поиск решений.
-                // Иначе искать н-ФСР
-                if (HasSolutionSet(ref extendedMatrix)) 
+                if (!HasSolutionSet(ref extendedMatrix)) 
                     return;
                 
                 FindFundamentalCases(ref extendedMatrix);
-                
                 return;
             }
             

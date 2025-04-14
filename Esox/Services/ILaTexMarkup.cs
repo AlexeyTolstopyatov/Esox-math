@@ -33,7 +33,7 @@ public interface ILaTexMarkup
     /// </summary>
     /// <returns></returns>
     string MakePMatrix(double[,] common, double[] freed, [Optional] string otherName);
-
+    
     /// <summary>
     /// Создает систему линейных уравнений
     /// с подписью \text{} (описанием решения)

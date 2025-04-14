@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using Esox.Types;
@@ -200,5 +201,30 @@ public class LaTeXFrac32Markup
         sb.Append(@"} ");
         
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Создает разметку Вектор-столбца
+    /// </summary>
+    /// <param name="data">Данные вектор-столбца</param>
+    public string MakePVectorColumn(Frac32[] data)
+    {
+        string vector = data.Aggregate(@"\pmatrix{", 
+            (current, t) => current + (t + @" \\"));
+
+        vector += "}";
+        return vector;
+    }
+    /// <summary>
+    /// Создает разметку Вектор-строки
+    /// </summary>
+    /// <param name="data">Данные вектор-строки</param>
+    public string MakePVectorRow(Frac32[] data)
+    {
+        string vector = data.Aggregate("[", 
+            (current, t) => current + (t + "; "));
+
+        vector += "]";
+        return vector;
     }
 }
