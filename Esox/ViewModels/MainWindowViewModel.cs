@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System;
+using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Esox.Services;
@@ -18,11 +20,8 @@ public class MainWindowViewModel : NotifyPropertyChanged
     }
     
     #region Private Fields
-    // Основная панель -> информация о матрице системы
-    private string? _mainSystemFormulaString;
-    private string? _detSystemFormulaString;
-    private Visibility _visibility;
     // Основная панель -> дополнительная информация
+    private Visibility _visibility;
     private Page? _computesPage;
 
     // Левая панель -> Уточнения для задания матрицы
@@ -35,6 +34,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
     private bool _allowHomogenousSystem;
     private bool _allowUndefinedSystem;
     private bool _allowSolutionCharacteristics;
+    private bool _allowGenerationMethods;
     // Левая панель -> Установка режима генерации
     private LinearCastingGeneratorType _generatorTypeMode;
     private int _mainSystemRequiredRank;
@@ -105,7 +105,11 @@ public class MainWindowViewModel : NotifyPropertyChanged
     public bool UndefinedSystem
     {
         get => _undefinedSystem;
-        set => SetField(ref _undefinedSystem, value);
+        set
+        {
+            AllowGenerationMethods = _undefinedSystem;
+            SetField(ref _undefinedSystem, value);
+        }
     }
     /// <summary>
     /// Совместная система линейных уравнений
@@ -120,7 +124,13 @@ public class MainWindowViewModel : NotifyPropertyChanged
             AllowUndefinedSystem = _consistentSystem;
             AllowHomogenousSystem = _consistentSystem;
             AllowSolutionCharacteristics = _consistentSystem;
+            AllowGenerationMethods = _consistentSystem;
         }
+    }
+    public bool AllowGenerationMethods
+    {
+        get => _allowGenerationMethods;
+        set => SetField(ref _allowGenerationMethods, value);
     }
     /// <summary>
     /// Изменяет видимость основной панели
@@ -175,7 +185,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
         
         Visibility = Visibility.Visible;
     }
-    private void Make()
+    private async void Make()
     {
         MethodFactory.MethodParameters methodParameters = new()
         {
@@ -188,14 +198,13 @@ public class MainWindowViewModel : NotifyPropertyChanged
             GeneratorTypeType = GeneratorTypeMode
         };
         IProvider method = MethodFactory.MakeMethodProvider(methodParameters);
-        
+
         ComputesPage = new LatexReportView
         {
             DataContext = new LatexReportViewModel(
                 method.Model!.MainSystemFormula!,
                 method.Model.MainSystemSolutionFormula!)
         };
-
         Visibility = Visibility.Visible;
     }
 }

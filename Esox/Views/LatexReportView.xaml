@@ -27,14 +27,20 @@
                 Foreground="{DynamicResource PrimaryTextBrush}"
                 FontSize="16"
                 Formula="{Binding ComputesFormulas}"/>
-            <TextBlock
-                Margin="20,0,20, 20"
-                FontSize="16"
-                TextWrapping="WrapWithOverflow"
-                Foreground="{DynamicResource PrimaryTextBrush}"
-                Text="{Binding ComputesFormulas}">
-                
-            </TextBlock>
+            <Expander 
+                IsExpanded="False"
+                Header="Отладочная информация"
+                Margin="10">
+                <TextBlock
+                    Opacity="0.5"
+                    Margin="20,0,20, 20"
+                    FontSize="16"
+                    FontFamily="Consolas"
+                    TextWrapping="WrapWithOverflow"
+                    Foreground="{DynamicResource PrimaryTextBrush}"
+                    Text="{Binding ComputesFormulas}">
+                </TextBlock>
+            </Expander>
         </StackPanel>
     </Grid>
 </Page>

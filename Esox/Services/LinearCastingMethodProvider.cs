@@ -175,107 +175,7 @@ public class LinearCastingMethodProvider : IProvider
         _model!.MainSystemSolutionFormula += text + @" \\ ";
         return Task.CompletedTask;
     }
-    /// <summary>
-    /// Ищет свободную строку в матрице по индексу столбца
-    /// </summary>
-    private static int FindFreeRow(Frac32[,] matrix, int startRow, int col)
-    {
-        for (int row = startRow; row < matrix.GetLength(0); row++)
-        {
-            if (matrix[row, col] != Frac32.Zero)
-                return row;
-        }
-        return -1;
-    }
-    /// <summary>
-    /// Меняет строки местами
-    /// </summary>
-    private static void SwapRowsByIndexes(Frac32[,] matrix, Frac32[] constants, int row1, int row2)
-    {
-        int cols = matrix.GetLength(1);
-        for (int col = 0; col < cols; col++)
-        {
-            (matrix[row1, col], matrix[row2, col]) = (matrix[row2, col], matrix[row1, col]);
-        }
-        (constants[row1], constants[row2]) = (constants[row2], constants[row1]);
-    }
     
-    private string Solve(Frac32[,] coefficients, Frac32[] constants)
-    {
-        if (!_isHomogenous && constants == null)
-            throw new ArgumentException("Неоднородная система требует констант.");
-
-        // Приводим матрицу к ступенчатому виду
-        var (rowEchelon, extendedMatrix) = GaussianElimination(coefficients, constants);
-        int rank = Rank(rowEchelon);
-        int emRank = Rank(extendedMatrix);
-
-        // Генерация LaTeX с шагами преобразований
-        WriteSolutionToStringAsync(_writer.MakeText("Преобразование матрицы"));
-        WriteSolutionToStringAsync(_writer.MakePMatrix(coefficients, constants));
-
-        if (!_isHomogenous)
-        {
-            if (rank != emRank)
-                return "Система несовместна. Ранги не совпадают.";
-
-            // WriteSolutionToStringAsync(_writer.MakeText("Система не однородна"));
-            // WriteSolutionToStringAsync(_writer.MakePMatrix(extendedMatrix));
-        }
-
-        // Обработка решений
-        return _isHomogenous 
-            ? ProcessHomogeneous(rank, rowEchelon) 
-            : ProcessNonHomogeneous(rank, coefficients, constants, rowEchelon, extendedMatrix);
-    }
-
-    /// <summary>
-    /// Решает однородную систему линейных уравнений
-    /// </summary>
-    /// <param name="rank">Ранг матрицы</param>
-    /// <param name="rowEchelon">Ступенчатая матрица</param>
-    /// <returns></returns>
-    private string ProcessHomogeneous(int rank, Frac32[,] rowEchelon)
-    {
-        if (rank == _ordinal)
-            return _writer.MakeText("Тривиальное решение: все переменные равны нулю.");
-
-        // Нахождение ФСР
-        (int[] baseIndexes, int[] tempIndexes) indexes = FindFundamentalCases(rowEchelon, rank);
-        WriteSolutionToStringAsync(_writer.MakeText("Фундаментальная совокупность решений"));
-        //WriteSolutionToStringAsync(_writer.MakePMatrix(fsr));
-        return "";
-    }
-
-    private string ProcessNonHomogeneous(int rank, Frac32[,] coefficients, Frac32[] constants,
-        Frac32[,] rowEchelon, Frac32[,] extendedMatrix)
-    {
-        if (rank == _ordinal)
-        {
-            //var solution = BackSubstitution(rowEchelon);
-            // return _writer.MakePMatrix(/*solution*/);
-            return "Факир был пьян.";
-        }
-
-        // Общее решение: частное + ФСР
-        //var particular = FindParticularSolution(rowEchelon);
-        var fsr = FindFundamentalCases(GaussianElimination(coefficients, null!).rowEchelon, rank);
-
-        WriteSolutionToStringAsync(_writer.MakeText("Общее решение"));
-        //WriteSolutionToStringAsync(_writer.MakeCases(coefficients, particular));
-        
-        return "rank < ordinal";
-    }
-    
-    /// <summary>
-    /// Проверяет совместность системы линейных уравнений.
-    /// </summary>
-    public bool IsConsistent(Frac32[,] commonMatrix, Frac32[] freeVector)
-    {
-        Frac32[,] extended = ToExtendedMatrixAsync((commonMatrix, freeVector)).Result;
-        return Rank(commonMatrix) == Rank(extended);
-    }
-
     /// <summary>
     /// Считает ранг матрицы
     /// </summary>
@@ -304,12 +204,159 @@ public class LinearCastingMethodProvider : IProvider
         return rank;
     }
     
-    private (Frac32[,] rowEchelon, Frac32[,] augmentedMatrix) GaussianElimination(Frac32[,] matrix, Frac32[] constants)
+    /// <summary>
+    /// Находит индексы главных и временных переменных
+    /// в нормальной фундаментальной совокупности решений
+    /// </summary>
+    /// <param name="extendedMatrix">матрица коэффициентов</param>
+    public static (int[], int[]) FindBasisAndFreeVariables(ref Frac32[,] extendedMatrix)
     {
-        // Реализация преобразования матрицы...
-        return (matrix, ToExtendedMatrixAsync((matrix, constants)).Result);
+        int rows = extendedMatrix.GetLength(0);
+        int cols = extendedMatrix.GetLength(1);
+        List<int> basisVars = new List<int>();
+        List<int> freeVars = new List<int>();
+
+        for (int j = 0; j < cols - 1; j++)
+        {
+            bool isBasis = false;
+            for (int i = 0; i < rows; i++)
+            {
+                if (extendedMatrix[i, j].Denominator == 1 &&
+                    extendedMatrix[i, j].Enumerator == 1)
+                {
+                    basisVars.Add(j);
+                    isBasis = true;
+                    break;
+                }
+            }
+            if (!isBasis)
+            {
+                freeVars.Add(j);
+            }
+        }
+        return (basisVars.ToArray(), freeVars.ToArray());
     }
-    
+
+    /// <summary>
+    /// Ищет фундаментальную совокупность решений
+    /// для системы линейных алгебраических уравнений
+    /// </summary>
+    /// <exception cref="AggregateException">Система не совместна</exception>
+    private void FindFundamentalCases(ref Frac32[,] extendedMatrix)
+    {
+        (int[] baseParameters, int[] freeParameters) parameters = 
+            FindBasisAndFreeVariables(ref extendedMatrix);
+        FromExtendedMatrix(ref extendedMatrix, out Frac32[,] matrix, out Frac32[] freed);
+        
+        int freeParametersCount = parameters.freeParameters.Length;
+        int baseParametersCount = parameters.baseParameters.Length;
+
+        List<Frac32[]> fsr = new();
+        Frac32[] particularSolution = new Frac32[matrix.GetLength(1) - 1]; // Частное решение
+
+        // 1. частное решение (все свободные переменные = 0)
+        for (int i = 0; i < matrix.GetLength(1) - 1; i++)
+        {
+            if (parameters.baseParameters.Contains(i))
+            {
+                int rowIndex = -1;
+                for (int r = 0; r < matrix.GetLength(0); r++)
+                {
+                    if (matrix[r, i].Enumerator != 1 || matrix[r, i].Denominator != 1) 
+                        continue;
+                    
+                    rowIndex = r;
+                    break;
+                }
+                if (rowIndex != -1)
+                {
+                    particularSolution[i] = freed[rowIndex];
+                }
+                else
+                {
+                    particularSolution[i] = Frac32.Zero; // Базисная переменная равна нулю
+                }
+            }
+            else
+            {
+                particularSolution[i] = Frac32.Zero; // Свободная переменная
+            }
+        }
+
+        // 2. решения ФСР
+        for (int i = 0; i < freeParametersCount; i++)
+        {
+            Frac32[] solution = new Frac32[matrix.GetLength(1)];
+            for (int j = 0; j < matrix.GetLength(1); j++)
+            {
+                solution[j] = Frac32.Zero;
+            }
+
+            int freeVarIndex = parameters.freeParameters[i];
+            solution[freeVarIndex] = new Frac32(1);
+
+            for (int k = 0; k < baseParametersCount; k++)
+            {
+                int basisVarIndex = parameters.baseParameters[k];
+                int rowIndex = -1;
+                for (int r = 0; r < matrix.GetLength(0); r++)
+                {
+                    if (matrix[r, basisVarIndex].Enumerator == 1 && matrix[r, basisVarIndex].Denominator == 1)
+                    {
+                        rowIndex = r;
+                        break;
+                    }
+                }
+                if (rowIndex != -1)
+                {
+                    foreach (var freeParameter in parameters.freeParameters)
+                    {
+                        solution[basisVarIndex] -= matrix[rowIndex, freeParameter] * Frac32.Positive;
+                    }
+                }
+                else
+                {
+                    solution[basisVarIndex] = Frac32.Zero;
+                }
+            }
+            fsr.Add(solution);
+        }
+        
+        // Собрана Фундаментальная совокупность решений...
+        // solution = [[\frac, \frac, 1, 0], [\frac, \frac, 0, 1]]
+        Frac32[,] fundament = new Frac32[baseParametersCount, _ordinal];
+
+        for (int i = 0; i < baseParametersCount; i++)
+        {
+            for (int j = 0; j < _ordinal; j++)
+            {
+                fundament[i, j] = fsr
+                    .ElementAt(i)
+                    .ElementAt(j);
+            }
+        }
+
+        WriteSolutionToStringAsync(_writer.MakeText($"Фундаментальная совокупность решений системы"));
+        WriteSolutionToStringAsync(_writer.MakePMatrix(fundament, $"{_writer.Name}_{{fnd}}"));
+        
+    }
+
+    public static void PrintParticularSolution(Frac32[] particularSolution)
+    {
+        if (particularSolution != null && particularSolution.Length > 0)
+        {
+            Console.WriteLine("Particular Solution:");
+            Console.Write("[");
+            foreach (var val in particularSolution)
+            {
+                Console.Write($"{val} ");
+            }
+
+            Console.Write("] ");
+            Console.WriteLine();
+        }
+    }
+
     /// <summary>
     /// Рассчитывает и возвращает фундаментальную совокупность решений
     /// </summary>
@@ -368,13 +415,13 @@ public class LinearCastingMethodProvider : IProvider
     private void FindSolutions(Frac32[,] matrix, Frac32[] freeTerms)
     {
         int rows = matrix.GetLength(0);
-        int cols = matrix.GetLength(1); // количество переменных
+        int cols = matrix.GetLength(1);
         if (rows != freeTerms.Length)
         {
             throw new ArgumentException("Количество строк матрицы не совпадает с длиной вектора свободных членов.");
         }
-
-        // 1. Создаем расширенную матрицу
+        
+        // 1. Расширенная матрица системы
         Frac32[,] extendedMatrix = new Frac32[rows, cols + 1];
         for (int i = 0; i < rows; i++)
         {
@@ -414,11 +461,11 @@ public class LinearCastingMethodProvider : IProvider
                 // Если SingleSolutionExists(ref extendedMatrix)...
                 // Продолжить поиск решений.
                 // Иначе искать н-ФСР
-                if (!SingleSolution(ref extendedMatrix))
-                {
-                    FindFundamentalCases(extendedMatrix, Rank(extendedMatrix));
+                if (HasSolutionSet(ref extendedMatrix)) 
                     return;
-                }
+                
+                FindFundamentalCases(ref extendedMatrix);
+                
                 return;
             }
             
@@ -483,10 +530,21 @@ public class LinearCastingMethodProvider : IProvider
         }
     }
 
-    private bool SingleSolution(ref Frac32[,] extended)
+    /// <summary>
+    /// Проверяет расширенную систему линейных уравнений.
+    /// Существует ли множество решений системы или система
+    /// имеет лишь одно.
+    /// </summary>
+    /// <param name="extended">Расширенная матрица системы</param>
+    /// <returns>
+    /// <c>True</c>
+    /// Если система имеет множество решений,
+    /// в любом другом случае <c>False</c>
+    /// </returns>
+    private bool HasSolutionSet(ref Frac32[,] extended)
     {
         WriteSolutionToStringAsync(_writer.MakeText("Характеристики системы"));
-        FromExtendedMatrix(ref extended, out Frac32[,] coefficients, out Frac32[] constants);
+        FromExtendedMatrix(ref extended, out Frac32[,] coefficients, out Frac32[] _);
         int r_ex = Rank(extended);
         int c_ex = Rank(coefficients);
         
@@ -502,9 +560,9 @@ public class LinearCastingMethodProvider : IProvider
         if (r_ex == c_ex && c_ex < _ordinal)
         {
             WriteSolutionToStringAsync(_writer.MakeText("Система уравнений неопределена"));
-            return false;
+            return true;
         }
         
-        return true;
+        return false;
     }
 }

@@ -105,7 +105,8 @@
                             <ComboBox
                                 Width="250"
                                 Margin="5"
-                                SelectedIndex="{Binding GeneratorTypeMode}">
+                                SelectedIndex="{Binding GeneratorTypeMode}"
+                                IsEnabled="{Binding AllowGenerationMethods}">
                                 <ComboBoxItem Content="Метод Ортогонализации"/>
                                 <ComboBoxItem Content="Метод Треугольных матриц"/>
                                 <ComboBoxItem Content="Случайные коэффициенты"/>
