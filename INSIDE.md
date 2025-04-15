@@ -1,6 +1,6 @@
 # Внутри
 
-> ![IMPORTANT] Здесь содержатся `KaTeX`
+> Здесь содержатся `KaTeX`
 макросы. Это лучше смотреть с документ в 
 web-версии GitHub или в Visual Studio Code.
 
@@ -172,7 +172,8 @@ W_{common} =
     -7 & -3 & 1 \\
     1 & 5 & 7 & \\
     \alpha & 5\alpha & 7\alpha
-\end{bmatrix} W_{free} =
+\end{bmatrix} 
+W_{free} =
 \begin{bmatrix}
     \beta  \\
     \gamma  \\
@@ -200,11 +201,12 @@ $$
 
 Сначала генерируются линейно независимые строки (определяется рангом матрицы)
 уже для расширенной матрицы
+
 $$
 J_{ext} = 
 \begin{bmatrix}
     -7 & -3 & 1 & 3\\
-    \dots & \dots & \dots
+    \dots & \dots & \dots & \dots \\
 \end{bmatrix}
 $$
 
@@ -218,7 +220,7 @@ J_{ext} =
 \begin{bmatrix}
     -7 & -3 & 1 & 3\\
     4\alpha & 2\alpha & 5\alpha & 6\alpha \\
-    \dots & \dots & \dots
+    \dots & \dots & \dots & \dots \\
 \end{bmatrix}
 $$
 
