@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:hc="https://handyorg.github.io/handycontrol"
         xmlns:local="clr-namespace:Esox.ViewModels"
+        xmlns:fc="clr-namespace:WpfMath.Controls;assembly=WpfMath"
         Background="{DynamicResource RegionBrush}"
         mc:Ignorable="d"
         Title="Esox Window" 
@@ -14,7 +15,7 @@
     </Window.DataContext>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300"/> <!-- Панель параметров -->
+            <ColumnDefinition Width="320"/> <!-- Панель параметров -->
             <ColumnDefinition Width="*"/>   <!-- Область матрицы -->
         </Grid.ColumnDefinitions>
 
@@ -24,125 +25,175 @@
             Background="{DynamicResource RegionBrush}" 
             BorderThickness="0 0 0 0" 
             BorderBrush="{DynamicResource BorderBrush}">
-            <ScrollViewer>
-                <StackPanel 
-                    Margin="20">
-                    <!-- Заголовок -->
-                    <TextBlock
-                        Foreground="{DynamicResource PrimaryTextBrush}"
-                        Text="Параметры матрицы" 
-                        FontSize="21" 
-                        Margin="0 0 0 10"/>
-                    
-                    <!-- Размеры матрицы -->
-                    <StackPanel>
-                        <Label
-                            HorizontalAlignment="Left"
-                            BorderBrush="{DynamicResource RegionBrush}"
-                            Content="Порядок"
-                            Margin="0 0 0 5" 
-                            Opacity="0.8"/>
-                        <hc:NumericUpDown
-                            Value="{Binding MainSystemOrdinal}"
-                            Minimum="2"
-                            Maximum="10"/>
-                    </StackPanel>
-                
-                    <!-- Тип матрицы -->
-                    <StackPanel
-                        HorizontalAlignment="Left">
-                        <Label
-                            HorizontalAlignment="Stretch"
-                            BorderBrush="{DynamicResource RegionBrush}"
-                            Content="Характеристики системы" 
-                            Opacity="0.8"/>
-                        <StackPanel>
-                            <CheckBox
-                                IsChecked="{Binding ConsistentSystem}"
-                                Content="Совместная"
+            <hc:ScrollViewer>
+                <StackPanel>
+                    <Expander
+                        IsExpanded="True"
+                        Margin="10"
+                        Header="Новая система уравнений">
+                        <StackPanel 
+                                Margin="20">
+                                <!-- Заголовок -->
+                            <TextBlock
+                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                Text="Параметры матрицы" 
+                                FontSize="21" 
+                                Margin="0 0 0 10"/>
+                            
+                            <!-- Размеры матрицы -->
+                            <StackPanel>
+                                <Label
+                                    HorizontalAlignment="Left"
+                                    BorderBrush="{DynamicResource RegionBrush}"
+                                    Content="Порядок"
+                                    Margin="0 0 0 5" 
+                                    Opacity="0.8"/>
+                                <hc:NumericUpDown
+                                    Value="{Binding MainSystemOrdinal}"
+                                    Minimum="2"
+                                    Maximum="10"/>
+                            </StackPanel>
+                        
+                            <!-- Тип матрицы -->
+                            <StackPanel
+                                HorizontalAlignment="Left">
+                                <Label
+                                    HorizontalAlignment="Stretch"
+                                    BorderBrush="{DynamicResource RegionBrush}"
+                                    Content="Характеристики системы" 
+                                    Opacity="0.8"/>
+                                <StackPanel>
+                                    <CheckBox
+                                        IsChecked="{Binding ConsistentSystem}"
+                                        Content="Совместная"
+                                        Width="150"
+                                        Margin="5"/>
+                                    <CheckBox
+                                        IsEnabled="{Binding AllowHomogenousSystem}"
+                                        IsChecked="{Binding HomogenousSystem}"
+                                        Margin="5"
+                                        Width="150"
+                                        Content="Однородная"/>
+                                    <CheckBox
+                                        IsEnabled="{Binding AllowUndefinedSystem}"
+                                        IsChecked="{Binding UndefinedSystem}"
+                                        Content="Неопределенная"
+                                        Margin="5"
+                                        Width="150"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel
+                                HorizontalAlignment="Left">
+                                <Label
+                                    HorizontalAlignment="Left"
+                                    BorderBrush="{DynamicResource RegionBrush}"
+                                    Content="Способ решения"
+                                    Opacity="0.8"/>
+                                <StackPanel>
+                                    <CheckBox
+                                        BorderBrush="{DynamicResource RegionBrush}"
+                                        Content="Правило Крамера"
+                                        IsEnabled="{Binding AllowSolutionCharacteristics}"
+                                        IsChecked="{Binding KramerMethodFlag}"
+                                        Margin="5"
+                                        Width="150"/>
+                                </StackPanel>
+                            </StackPanel>
+                            
+                            <StackPanel
+                                HorizontalAlignment="Left">
+                                <Label
+                                    HorizontalAlignment="Left"
+                                    Opacity="0.8"
+                                    Content="Тип создателя матрицы"
+                                    BorderBrush="{DynamicResource RegionBrush}"/>
+                                <StackPanel>
+                                    <ComboBox
+                                        Width="250"
+                                        Margin="5"
+                                        SelectedIndex="{Binding GeneratorTypeMode}"
+                                        IsEnabled="{Binding AllowGenerationMethods}">
+                                        <ComboBoxItem Content="Метод Ортогонализации"/>
+                                        <ComboBoxItem Content="Метод Треугольных матриц"/>
+                                        <ComboBoxItem Content="Случайные коэффициенты"/>
+                                    </ComboBox>
+                                    <Label
+                                        Opacity="0.8"
+                                        Content="Ожидаемый Ранг матрицы"
+                                        BorderBrush="{DynamicResource RegionBrush}"
+                                        HorizontalAlignment="Left"
+                                        IsEnabled="{Binding AllowSolutionCharacteristics}"/>
+                                    <hc:NumericUpDown
+                                        Margin="5"
+                                        Minimum="1"
+                                        Maximum="9"
+                                        Value="{Binding MainSystemRequiredRank}"
+                                        IsEnabled="{Binding AllowSolutionCharacteristics}">
+                                    </hc:NumericUpDown>
+                                </StackPanel>
+                            </StackPanel>
+                                
+                            <!-- Кнопка -->
+                            <StackPanel
+                                Orientation="Horizontal">
+                                <Button
+                                    Width="100"
+                                    Content="Создать"
+                                    Command="{Binding MakeCommand}"
+                                    Margin="0 20 0 0" 
+                                    Height="35"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Expander>
+                    <Expander
+                        IsExpanded="False"
+                        Margin="10,0,10,10"
+                        Header="Существующая система уравнений">
+                        <StackPanel
+                            Margin="20">
+                            <TextBlock
+                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                Text="Существующая матрица системы (LaTeX)"
+                                FontSize="21"
+                                TextWrapping="WrapWithOverflow"/>
+                            <TextBlock
+                                TextWrapping="WrapWithOverflow"
+                                Text="Укажите именно расширенную матрицу системы, а не систему линейных уравнений"
+                                Opacity="0.7"
+                                Margin="0,10,0,0"/>
+                            <TextBox
+                                Margin="10"
+                                Text="{Binding LatexFormula, UpdateSourceTrigger= PropertyChanged}"
+                                FontSize="16"
+                                FontFamily="Consolas"
+                                AcceptsTab="True"
+                                AcceptsReturn="True">
+                            </TextBox>
+                            <!-- злючий обман -->
+                            <Button
+                                Command="{Binding FromLatexCommand}"
+                                Content="Создать решение"
                                 Width="150"
-                                Margin="5"/>
-                            <CheckBox
-                                IsEnabled="{Binding AllowHomogenousSystem}"
-                                IsChecked="{Binding HomogenousSystem}"
-                                Margin="5"
-                                Width="150"
-                                Content="Однородная"/>
-                            <CheckBox
-                                IsEnabled="{Binding AllowUndefinedSystem}"
-                                IsChecked="{Binding UndefinedSystem}"
-                                Content="Неопределенная"
-                                Margin="5"
-                                Width="150"/>
+                                Height="35"
+                                Margin="0,0,10,0"
+                                HorizontalAlignment="Right">
+                            </Button>
+                            <fc:FormulaControl
+                                Margin="0,10,0,10"
+                                Formula="{Binding LatexFormula, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock
+                                Opacity="0.7"
+                                Margin="0,5,0,0"
+                                FontFamily="Consolas"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                TextWrapping="WrapWithOverflow"
+                                Text="{Binding EnvironmentHelpMessage}"
+                                TextAlignment="Justify"/>
                         </StackPanel>
-                    </StackPanel>
-                    <StackPanel
-                        HorizontalAlignment="Left">
-                        <Label
-                            HorizontalAlignment="Left"
-                            BorderBrush="{DynamicResource RegionBrush}"
-                            Content="Способ решения"
-                            Opacity="0.8"/>
-                        <StackPanel>
-                            <CheckBox
-                                BorderBrush="{DynamicResource RegionBrush}"
-                                Content="Правило Крамера"
-                                IsEnabled="{Binding AllowSolutionCharacteristics}"
-                                IsChecked="{Binding KramerMethodFlag}"
-                                Margin="5"
-                                Width="150"/>
-                        </StackPanel>
-                    </StackPanel>
-                    
-                    <StackPanel
-                        HorizontalAlignment="Left">
-                        <Label
-                            HorizontalAlignment="Left"
-                            Opacity="0.8"
-                            Content="Тип создателя матрицы"
-                            BorderBrush="{DynamicResource RegionBrush}"/>
-                        <StackPanel>
-                            <ComboBox
-                                Width="250"
-                                Margin="5"
-                                SelectedIndex="{Binding GeneratorTypeMode}"
-                                IsEnabled="{Binding AllowGenerationMethods}">
-                                <ComboBoxItem Content="Метод Ортогонализации"/>
-                                <ComboBoxItem Content="Метод Треугольных матриц"/>
-                                <ComboBoxItem Content="Случайные коэффициенты"/>
-                            </ComboBox>
-                            <Label
-                                Opacity="0.8"
-                                Content="Ожидаемый Ранг матрицы"
-                                BorderBrush="{DynamicResource RegionBrush}"
-                                HorizontalAlignment="Left"
-                                IsEnabled="{Binding AllowSolutionCharacteristics}"/>
-                            <hc:NumericUpDown
-                                Margin="5"
-                                Minimum="1"
-                                Maximum="9"
-                                Value="{Binding MainSystemRequiredRank}"
-                                IsEnabled="{Binding AllowSolutionCharacteristics}">
-                            </hc:NumericUpDown>
-                        </StackPanel>
-                    </StackPanel>
-                    <!-- Кнопка -->
-                    <StackPanel
-                        Orientation="Horizontal">
-                        <Button
-                            Width="100"
-                            Content="Создать"
-                            Command="{Binding MakeCommand}"
-                            Margin="0 20 0 0" Height="35"/>
-                        <Button
-                            Width="100"
-                            Content="Из LaTeX"
-                            Command="{Binding FromLatexCommand}"
-                            Margin="5,20,0,0"
-                            Height="35"/>
-                    </StackPanel>
+                    <!--Установка СЛАУ внутри окна-->
+                    </Expander>
                 </StackPanel>
-            </ScrollViewer>
+            </hc:ScrollViewer>
         </Border>
 
         <!-- Правая область: Вывод матрицы -->

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Esox.Services;
@@ -17,6 +15,20 @@ public class MainWindowViewModel : NotifyPropertyChanged
         _generatorTypeMode = LinearCastingGeneratorType.Triangle;
         _makeCommand = new ActionCommand(Make);
         _fromLatexCommand = new ActionCommand(FromLatex);
+        _environmentHelpMessage = @"Используйте 'pmatrix' окружение для обозначения матрицы. 
+1) Указывайте '\begin{pmatrix}' и '\end{pmatrix}' области использования или используйте
+сокращение встренное в ПО: 
+
+\pmatrix{ матрица системы здесь }
+
+2) Вместо дробей LaTeX - \frac{x}{y}, используйте линейный вид: 'x/y'
+
+3) Формула должна содержать только цело-численные значения или значения в виде обыкновенных дробей
+
+Если вместо формулы вы видите красную полосу - скорее всего, формула содержит ошибки.";
+        _visibility = Visibility.Hidden;
+        _computesPage = new Page();
+        _latexFormula = @"\pmatrix{2 & 3 & 3 \\ 2 & 1 & 0}";
     }
     
     #region Private Fields
@@ -30,19 +42,33 @@ public class MainWindowViewModel : NotifyPropertyChanged
     private bool _undefinedSystem;
     private bool _consistentSystem;
     private bool _kramerMethodFlag;
+    
     // Левая панель -> Установка ограничений
     private bool _allowHomogenousSystem;
     private bool _allowUndefinedSystem;
     private bool _allowSolutionCharacteristics;
     private bool _allowGenerationMethods;
+    
     // Левая панель -> Установка режима генерации
     private LinearCastingGeneratorType _generatorTypeMode;
     private int _mainSystemRequiredRank;
-    private int _allowedMaximum;
+    
     #endregion
-    
+    // Левая панель -> Создание своей системы уравнений
+    private string _latexFormula;
+    private string _environmentHelpMessage;
+
     #region View Bingings
-    
+    public string EnvironmentHelpMessage
+    {
+        get => _environmentHelpMessage;
+        set => SetField(ref _environmentHelpMessage, value);
+    }
+    public string LatexFormula
+    {
+        get => _latexFormula;
+        set => SetField(ref _latexFormula, value);
+    }
     public LinearCastingGeneratorType GeneratorTypeMode
     {
         get => _generatorTypeMode;
@@ -51,7 +77,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
     public Page? ComputesPage
     {
         get => _computesPage;
-        set => SetField(ref _computesPage, value);
+        private set => SetField(ref _computesPage, value);
     }
 
     /// <summary>
@@ -160,7 +186,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
 
     private ICommand _makeCommand;
     private ICommand _fromLatexCommand;
-
+    
     #endregion
 
     #region View Command-Bindings
@@ -178,14 +204,19 @@ public class MainWindowViewModel : NotifyPropertyChanged
 
     private void FromLatex()
     {
-        ComputesPage = new SystemMakerView()
+        IProvider method = MethodFactory
+            .MakeMethodProvider(LaTeXFrac32Reader.ParseLatexMatrixAsync(LatexFormula).Result);
+        
+        ComputesPage = new LatexReportView // Null-Reference conflict
         {
-            DataContext = new SystemMakerViewModel()
+            DataContext = new LatexReportViewModel(
+                method.Model!.MainSystemFormula!,
+                method.Model.MainSystemSolutionFormula!)
         };
         
         Visibility = Visibility.Visible;
     }
-    private async void Make()
+    private void Make()
     {
         MethodFactory.MethodParameters methodParameters = new()
         {
@@ -205,6 +236,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
                 method.Model!.MainSystemFormula!,
                 method.Model.MainSystemSolutionFormula!)
         };
+        
         Visibility = Visibility.Visible;
     }
 }

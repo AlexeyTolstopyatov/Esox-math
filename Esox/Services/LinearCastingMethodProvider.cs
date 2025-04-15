@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Net.Mime;
 using System.Threading.Tasks;
 using Esox.Models;
 using Esox.Types;
@@ -47,33 +45,81 @@ public class LinearCastingMethodProvider : IProvider
     private readonly LinearCastingGeneratorType _generatorType;
     private readonly int _ordinal;
     private readonly int _rank;
-    private readonly string _characteristics;
     private readonly bool _isHomogenous;
     private readonly bool _isUndefined;
     private readonly bool _isConsistent;
     public CommonMethodComputingModel? Model => _model;
 
+    /// <summary>
+    /// Проводит метод линейных преобразований
+    /// над системой линейных алгебраических уравнений.
+    ///
+    /// [важно]: Вызов этого варианта
+    /// конструктора сам создает и сам решает созданную систему
+    /// уравнений автоматически. Результаты предоставляются
+    /// в модель данных <see cref="CommonMethodComputingModel"/>
+    /// </summary>
+    /// <param name="ordinal">Ожидаемый порядок квадратной матрицы</param>
+    /// <param name="rank">Ожидаемый ранг матрицы</param>
+    /// <param name="type">Тип генератора системы линейных уравнений</param>
+    /// <param name="isConsistent">Требование совместности системы</param>
+    /// <param name="isUndefined">Требование определенности системы</param>
+    /// <param name="isHomogenous">Требование вырожденности</param>
+    /// <param name="minimum">(не обязательно) Минимум диапозона значений</param>
+    /// <param name="maximum">(не обязательно) Максимум диапозона значений</param>
     public LinearCastingMethodProvider(
         int ordinal, int rank, LinearCastingGeneratorType type,
         bool isConsistent,
         bool isUndefined,
+        bool isHomogenous,
         int minimum = -10, int maximum = 10)
     {
-        _generator = new MatrixGenerator(ordinal, minimum, maximum);
+        _generator = new MatrixGenerator(ordinal, minimum, maximum, isHomogenous);
         _ordinal = ordinal;
         _rank = rank;
         _model = new();
         _writer = new();
-        _characteristics = _writer.Name;
         _generatorType = type;
         _isConsistent = isConsistent;
-        _isHomogenous = false;
+        _isHomogenous = isHomogenous;
         _isUndefined = isUndefined;
         
-        _ = InitializeAsync();
+        _ = InitializeAndFindAsync();
     }
-    
-    private async Task InitializeAsync()
+
+    /// <summary>
+    /// Проводит метод линейных преобразований
+    /// над системой линейных алгебраических уравнений.
+    ///
+    /// [важно]: Вызов этого варианта
+    /// конструктора только решает заданную систему
+    /// уравнений автоматически. Результаты предоставляются
+    /// в модель данных <see cref="CommonMethodComputingModel"/>
+    /// </summary>
+    /// <param name="extendedMatrix">Основная матрица системы</param>
+    public LinearCastingMethodProvider(Frac32[,] extendedMatrix)
+    {
+        _writer = new();
+        _generator = new(0);
+        _model = new CommonMethodComputingModel();
+        _ = FindAsync(extendedMatrix);
+    }
+
+    private async Task FindAsync(Frac32[,] extendedMatrix)
+    {
+        // очень плохая идея, но...
+        FromExtendedMatrix(ref extendedMatrix, out Frac32[,] matrix, out Frac32[] vector);
+        await WriteSystemToStringAsync((matrix, vector));
+        await WriteSolutionToStringAsync(_writer.MakePMatrix(matrix, vector));
+        
+        FindSolutions(matrix, vector);
+    }
+    /// <summary>
+    /// Точка входа внутри провайдера.
+    /// Создает и разрешает созданную систему линейных уравнений
+    /// Результаты обновляются и записываются в <see cref="CommonMethodComputingModel"/>
+    /// </summary>
+    private async Task InitializeAndFindAsync()
     {
         (Frac32[,] matrix, Frac32[] vector) vectors;
         if (!_isConsistent)
@@ -99,26 +145,7 @@ public class LinearCastingMethodProvider : IProvider
         
         FindSolutions(vectors.matrix, vectors.vector);
     }
-    /// <summary>
-    /// Заполняет расширенную матрицу системы
-    /// из кортежа основных векторов
-    /// </summary>
-    /// <param name="vectors">кортеж векторов системы</param>
-    private Task<Frac32[,]> ToExtendedMatrixAsync((Frac32[,] matrix, Frac32[] vector) vectors)
-    {
-        Frac32[,] extendedMatrix = new Frac32[_ordinal, _ordinal + 1];
-        for (int i = 0; i < _ordinal; i++)
-        {
-            for (int j = 0; j < _ordinal; j++)
-            {
-                extendedMatrix[i, j] = vectors.matrix[i, j];
-            }
-            extendedMatrix[i, _ordinal] = vectors.vector[i];
-        }
-
-        //_extendedMatrix = extendedMatrix;
-        return Task.FromResult<Frac32[,]>(extendedMatrix);
-    }
+    
     /// <summary>
     /// Разделяет расширенную матрицу на основную матрицу и вектор свободных членов.
     /// </summary>
@@ -155,6 +182,26 @@ public class LinearCastingMethodProvider : IProvider
             }
             freed[i] = extended[i, cols - 1];
         }
+    }
+    /// <summary>
+    /// Заполняет расширенную матрицу системы
+    /// из кортежа основных векторов
+    /// </summary>
+    /// <param name="vectors">кортеж векторов системы</param>
+    private Task<Frac32[,]> ToExtendedMatrixAsync((Frac32[,] matrix, Frac32[] vector) vectors)
+    {
+        Frac32[,] extendedMatrix = new Frac32[_ordinal, _ordinal + 1];
+        for (int i = 0; i < _ordinal; i++)
+        {
+            for (int j = 0; j < _ordinal; j++)
+            {
+                extendedMatrix[i, j] = vectors.matrix[i, j];
+            }
+            extendedMatrix[i, _ordinal] = vectors.vector[i];
+        }
+
+        //_extendedMatrix = extendedMatrix;
+        return Task.FromResult<Frac32[,]>(extendedMatrix);
     }
     /// <summary>
     /// Записывает данные в поле системы линейных уравнений
@@ -336,66 +383,10 @@ public class LinearCastingMethodProvider : IProvider
 
         WriteSolutionToStringAsync(_writer.MakeText($"Нормальная-Фундаментальная совокупность решений системы"));
         WriteSolutionToStringAsync(_writer.MakePMatrix(fundament, $"{_writer.Name}_{{fnd}}"));
-        PrintParticularSolution(particularSolution);
+        WriteSolutionToStringAsync($"{_writer.Name}_{{part}} = " + 
+                                   _writer.MakePVectorColumn(particularSolution));
     }
 
-    private void PrintParticularSolution(Frac32[] particularSolution)
-    {
-        if (particularSolution.Length <= 0)
-            return;
-        // print vector
-        WriteSolutionToStringAsync($"{_writer.Name}_{{part}} = " + _writer.MakePVectorColumn(particularSolution));
-    }
-
-    /// <summary>
-    /// Рассчитывает и возвращает фундаментальную совокупность решений
-    /// </summary>
-    private (int[] baseIndexes, int[] tempIndexes) FindFundamentalCases(Frac32[,] matrix, int rank)
-    {
-        // Сделать однородную систему
-        FromExtendedMatrix(ref matrix, out Frac32[,] coefficients, out _);
-        Frac32[] zeroConstants = new Frac32[_ordinal];
-        MatrixGenerator.Initialize(ref zeroConstants);
-
-        Frac32[,] homoMatrix = ToExtendedMatrixAsync((coefficients, zeroConstants)).Result;
-        
-        int vars = _ordinal;
-        int freeVars = vars - rank;
-        List<int> baseIndexesList = new();
-        List<int> tempIndexesList = new();
-        
-        for (int i = 0; i < freeVars; i++)
-        {
-            var vector = new Frac32[vars];
-            
-            int allParametersCount = homoMatrix.GetLength(1); // Общее количество переменных
-            
-            // Находим индексы базисных и свободных переменных
-            // x_1 = t_3 [....] + t_4 [....]
-            // x_2 = t_3 [....] + t_4 [....]
-
-            for (int row = 0, col = 0; row < rank && col < allParametersCount; col++)
-            {
-                if (homoMatrix[row, col].Enumerator != 0) // Нашли ведущий элемент
-                {
-                    baseIndexesList.Add(col);
-                    row++;
-                }
-                else
-                {
-                    tempIndexesList.Add(col);
-                }
-            }
-        }
-        // ok, [x_n, x_m] ok [t_s, t_p]
-        string baseIndexesString = baseIndexesList.Aggregate("", (current, t) => current + @$"x_{t + 1}; ");
-        string tempIndexesString = tempIndexesList.Aggregate("", (current, t) => current + $"t_{t + 1};");
-        WriteSolutionToStringAsync(_writer.MakeText("Основные переменные ") + baseIndexesString);
-        WriteSolutionToStringAsync(_writer.MakeText("Временные переменные") + tempIndexesString);
-        
-        return (baseIndexesList.ToArray(), tempIndexesList.ToArray());
-    }
-    
     /// <summary>
     /// Ищет решения для системы линейных уравнений
     /// </summary>
@@ -530,19 +521,19 @@ public class LinearCastingMethodProvider : IProvider
     {
         WriteSolutionToStringAsync(_writer.MakeText("Характеристики системы"));
         FromExtendedMatrix(ref extended, out Frac32[,] coefficients, out Frac32[] _);
-        int r_ex = Rank(extended);
-        int c_ex = Rank(coefficients);
+        int rankEm = Rank(extended);
+        int rankCm = Rank(coefficients);
         
         WriteSolutionToStringAsync(@$"n({_writer.Name}) = {_ordinal} \\");
-        WriteSolutionToStringAsync(@$"r({_writer.Name}_{{ex}}) = {r_ex} \\");
-        WriteSolutionToStringAsync($@"r({_writer.Name}) = {c_ex} \\");
-        if (r_ex != c_ex)
+        WriteSolutionToStringAsync(@$"r({_writer.Name}_{{ex}}) = {rankEm} \\");
+        WriteSolutionToStringAsync($@"r({_writer.Name}) = {rankCm} \\");
+        if (rankEm != rankCm)
         {
             WriteSolutionToStringAsync(_writer.MakeText($@"Система уравнений несовместна"));
             return false;
         }
 
-        if (r_ex == c_ex && c_ex < _ordinal)
+        if (rankEm == rankCm && rankCm < _ordinal)
         {
             WriteSolutionToStringAsync(_writer.MakeText("Система уравнений неопределена"));
             return true;

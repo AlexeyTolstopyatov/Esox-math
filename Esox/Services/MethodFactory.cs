@@ -1,4 +1,5 @@
 ﻿using System;
+using Esox.Types;
 
 namespace Esox.Services;
 
@@ -32,17 +33,18 @@ public static class MethodFactory
             reqs.Rank,
             reqs.GeneratorTypeType, 
             reqs.MakeConsistent,
-            reqs.MakeUndefinedInstance);
+            reqs.MakeUndefinedInstance,
+            reqs.MakeHomogenousInstance);
     }
 
     /// <summary>
     /// Создает <see cref="IProvider"/> на основе
     /// разметки Latex.
     /// </summary>
-    /// <param name="latex"></param>
+    /// <param name="data"></param>
     /// <returns></returns>
-    public static IProvider MakeMethodProvider(string latex)
+    public static IProvider MakeMethodProvider(Frac32[,] data)
     {
-        throw new NotImplementedException();
+        return new LinearCastingMethodProvider(data);
     }
 }
