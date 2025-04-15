@@ -145,7 +145,7 @@ public class LaTeXFrac32Markup
         // build matrix
         StringBuilder sb = new();
         sb.Append(string.IsNullOrEmpty(otherName) ? Name : otherName);
-        sb.Append(@" = \pmatrix{");
+        sb.Append(@" = \begin{pmatrix}");
         
         for (int i = 0; i < common.GetLength(0); i++)
         {
@@ -160,15 +160,15 @@ public class LaTeXFrac32Markup
         sb.Insert(sb.Length - 3, "");
         sb.Insert(sb.Length - 2, "");
         sb.Insert(sb.Length - 1, "");
-        sb.Append(@"} ");
+        sb.Append(@"\end{pmatrix}");
 
-        sb.Append(@"\pmatrix{");
+        sb.Append(@"\begin{pmatrix}");
         foreach (Frac32 frac in freed)
         {
             sb.Append(frac + @"\\");
         }
 
-        sb.Append("}");
+        sb.Append(@"\end{pmatrix}");
         
         return sb.ToString();
     }
@@ -183,7 +183,7 @@ public class LaTeXFrac32Markup
         // build matrix
         StringBuilder sb = new();
         sb.Append(string.IsNullOrEmpty(otherName) ? Name : otherName);
-        sb.Append(@" = \pmatrix{");
+        sb.Append(@" = \begin{pmatrix}");
         
         for (int i = 0; i < matrix.GetLength(0); i++)
         {
@@ -198,7 +198,7 @@ public class LaTeXFrac32Markup
         sb.Insert(sb.Length - 3, "");
         sb.Insert(sb.Length - 2, "");
         sb.Insert(sb.Length - 1, "");
-        sb.Append(@"} ");
+        sb.Append(@"\end{pmatrix}");
         
         return sb.ToString();
     }
@@ -209,10 +209,10 @@ public class LaTeXFrac32Markup
     /// <param name="data">Данные вектор-столбца</param>
     public string MakePVectorColumn(Frac32[] data)
     {
-        string vector = data.Aggregate(@"\pmatrix{", 
+        string vector = data.Aggregate(@"\begin{pmatrix}", 
             (current, t) => current + (t + @" \\"));
 
-        vector += "}";
+        vector += @"\end{pmatrix}";
         return vector;
     }
     /// <summary>

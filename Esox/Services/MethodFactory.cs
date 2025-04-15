@@ -45,6 +45,9 @@ public static class MethodFactory
     /// <returns></returns>
     public static IProvider MakeMethodProvider(Frac32[,] data)
     {
-        return new LinearCastingMethodProvider(data);
+        if (data.GetLength(0) != data.GetLength(1))
+            return new LinearCastingMethodProvider(data);
+
+        return new SingleObjectOperationsMethodProvider(data);
     }
 }

@@ -5,23 +5,45 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:hc="https://handyorg.github.io/handycontrol"
         xmlns:local="clr-namespace:Esox.ViewModels"
+        xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
         xmlns:fc="clr-namespace:WpfMath.Controls;assembly=WpfMath"
         Background="{DynamicResource RegionBrush}"
         mc:Ignorable="d"
         Title="Esox Window" 
-        Height="600" Width="900">
+        Height="700" Width="900">
     <Window.DataContext>
         <local:MainWindowViewModel/>
     </Window.DataContext>
+    <!-- Привязка клавиш к событиям -->
+    <i:Interaction.Triggers>
+        <i:KeyTrigger
+            Key="S"
+            Modifiers="Shift">
+            <i:InvokeCommandAction
+                Command="{Binding SaveLatexCommand}"/>
+        </i:KeyTrigger>
+        <i:KeyTrigger
+            Key="T"
+            Modifiers="Control">
+            <i:InvokeCommandAction
+                Command="{Binding MakeCommand}"/>
+        </i:KeyTrigger>
+        <i:KeyTrigger
+            Key="S"
+            Modifiers="Control">
+            <i:InvokeCommandAction
+                Command="{Binding FromLatexCommand}"/>
+        </i:KeyTrigger>
+    </i:Interaction.Triggers>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="320"/> <!-- Панель параметров -->
+            <ColumnDefinition Width="350"/> <!-- Панель параметров -->
             <ColumnDefinition Width="*"/>   <!-- Область матрицы -->
         </Grid.ColumnDefinitions>
 
         <!-- Левая панель: Параметры -->
         <Border
-            Grid.Column="0" 
+            Grid.Column="0"
             Background="{DynamicResource RegionBrush}" 
             BorderThickness="0 0 0 0" 
             BorderBrush="{DynamicResource BorderBrush}">
@@ -36,29 +58,53 @@
                                 <!-- Заголовок -->
                             <TextBlock
                                 Foreground="{DynamicResource PrimaryTextBrush}"
-                                Text="Параметры матрицы" 
+                                Text="Новая матрица системы уравнений"
+                                TextWrapping="WrapWithOverflow"
                                 FontSize="21" 
                                 Margin="0 0 0 10"/>
-                            
                             <!-- Размеры матрицы -->
-                            <StackPanel>
-                                <Label
-                                    HorizontalAlignment="Left"
-                                    BorderBrush="{DynamicResource RegionBrush}"
-                                    Content="Порядок"
-                                    Margin="0 0 0 5" 
-                                    Opacity="0.8"/>
+                            <TextBlock
+                                TextWrapping="WrapWithOverflow"
+                                Text="Укажите характеристики системы линейных уравнений, которую необходимо сгенерировать и решить"
+                                Opacity="0.6"
+                                Foreground="{DynamicResource PrimaryTextBrush}"/>
+                            <Label
+                                HorizontalAlignment="Left"
+                                BorderBrush="{DynamicResource RegionBrush}"
+                                Content="Ожидаемые Порядок и Ранг матрицы"
+                                Margin="0 0 0 5" 
+                                Opacity="0.8"/>
+                            <StackPanel Orientation="Horizontal">
+                                <fc:FormulaControl
+                                    Margin="0,0,5,0"
+                                    VerticalAlignment="Center"
+                                    Formula="n="/>
                                 <hc:NumericUpDown
+                                    Height="35"
+                                    Margin="0,0,5,0"
+                                    Width="100"
                                     Value="{Binding MainSystemOrdinal}"
                                     Minimum="2"
                                     Maximum="10"/>
+                                <fc:FormulaControl
+                                    Margin="5,0,5,0"
+                                    VerticalAlignment="Center"
+                                    Formula="r="/>
+                                <hc:NumericUpDown
+                                    Minimum="1"
+                                    Maximum="9"
+                                    Height="35"
+                                    Width="100"
+                                    Value="{Binding MainSystemRequiredRank}"
+                                    IsEnabled="{Binding AllowSolutionCharacteristics}">
+                                </hc:NumericUpDown>
                             </StackPanel>
-                        
+                            
                             <!-- Тип матрицы -->
                             <StackPanel
                                 HorizontalAlignment="Left">
                                 <Label
-                                    HorizontalAlignment="Stretch"
+                                    HorizontalAlignment="Left"
                                     BorderBrush="{DynamicResource RegionBrush}"
                                     Content="Характеристики системы" 
                                     Opacity="0.8"/>
@@ -102,6 +148,14 @@
                             
                             <StackPanel
                                 HorizontalAlignment="Left">
+                                <TextBlock
+                                    FontFamily="Consolas"
+                                    Foreground="{DynamicResource PrimaryTextBrush}"
+                                    TextWrapping="WrapWithOverflow"
+                                    Text="Типы генератора матрицы доступны на выбор только для совместных определенных систем линейных алгебраических уравнений"
+                                    Opacity="0.6"
+                                    Margin="0, 10,0,0">
+                                </TextBlock>
                                 <Label
                                     HorizontalAlignment="Left"
                                     Opacity="0.8"
@@ -117,19 +171,6 @@
                                         <ComboBoxItem Content="Метод Треугольных матриц"/>
                                         <ComboBoxItem Content="Случайные коэффициенты"/>
                                     </ComboBox>
-                                    <Label
-                                        Opacity="0.8"
-                                        Content="Ожидаемый Ранг матрицы"
-                                        BorderBrush="{DynamicResource RegionBrush}"
-                                        HorizontalAlignment="Left"
-                                        IsEnabled="{Binding AllowSolutionCharacteristics}"/>
-                                    <hc:NumericUpDown
-                                        Margin="5"
-                                        Minimum="1"
-                                        Maximum="9"
-                                        Value="{Binding MainSystemRequiredRank}"
-                                        IsEnabled="{Binding AllowSolutionCharacteristics}">
-                                    </hc:NumericUpDown>
                                 </StackPanel>
                             </StackPanel>
                                 
@@ -138,11 +179,24 @@
                                 Orientation="Horizontal">
                                 <Button
                                     Width="100"
+                                    Style="{StaticResource ButtonPrimary}"
                                     Content="Создать"
                                     Command="{Binding MakeCommand}"
                                     Margin="0 20 0 0" 
                                     Height="35"/>
+                                <Button
+                                    Command="{Binding SaveLatexCommand}"
+                                    Width="120"
+                                    Height="35"
+                                    Margin="5,20,0,0"
+                                    Content="Редактировать"/>
                             </StackPanel>
+                            <TextBlock
+                                TextWrapping="WrapWithOverflow"
+                                Opacity="0.6"
+                                Margin="0,10,0,0"
+                                Text="Вы можете редактировать созданную систему уравнений, тогда ее разметка LaTeX сохранится в поле Существующий системы линейных уравнений"
+                                FontFamily="Consolas"/>
                         </StackPanel>
                     </Expander>
                     <Expander
@@ -173,6 +227,7 @@
                             <Button
                                 Command="{Binding FromLatexCommand}"
                                 Content="Создать решение"
+                                Style="{StaticResource ButtonPrimary}"
                                 Width="150"
                                 Height="35"
                                 Margin="0,0,10,0"
@@ -187,10 +242,34 @@
                                 FontFamily="Consolas"
                                 Foreground="{DynamicResource PrimaryTextBrush}"
                                 TextWrapping="WrapWithOverflow"
-                                Text="{Binding EnvironmentHelpMessage}"
-                                TextAlignment="Justify"/>
+                                Text="{Binding EnvironmentHelpMessage}"/>
                         </StackPanel>
                     <!--Установка СЛАУ внутри окна-->
+                    </Expander>
+                    <Expander
+                        IsExpanded="False"
+                        Header="О программе"
+                        Margin="10,0,10,10">
+                        <StackPanel
+                            Margin="20">
+                            <TextBlock
+                                Text="Esox-Math"
+                                TextWrapping="WrapWithOverflow"
+                                FontSize="21"/>
+                            <TextBlock
+                                Margin="10"
+                                Opacity="0.8"
+                                TextWrapping="WrapWithOverflow"
+                                Text="{Binding AboutMessage}"/>
+                            <TextBlock
+                                TextWrapping="WrapWithOverflow"
+                                FontFamily="Consolas"
+                                Margin="0,10,0,0">
+                                <Run Text="Версия:"/>
+                                <Run Text="{Binding VersionMessage}"/>
+                                <LineBreak/>
+                            </TextBlock>
+                        </StackPanel>
                     </Expander>
                 </StackPanel>
             </hc:ScrollViewer>

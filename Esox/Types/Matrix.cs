@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Media.Animation;
 
 namespace Esox.Types;
 
@@ -38,22 +39,31 @@ public static class Matrix
     /// </summary>
     /// <param name="matrix"></param>
     /// <returns></returns>
-    public static double DeterminantI32(int[,] matrix)
+    public static Frac32 DeterminantFrac32Async(Frac32[,] matrix)
     {
-        int rows = matrix.GetLength(0);
-        int cols = matrix.GetLength(1);
-    
-        double[,] result = new double[rows, cols];
-    
-        Parallel.For(0, rows, i =>
-        {
-            for (int j = 0; j < cols; j++)
-            {
-                result[i, j] = matrix[i, j];
-            }
-        });
+        int n = matrix.GetLength(0);
         
-        return DeterminantF64(result);
+        if (n == 2)
+        {
+            return matrix[0, 0] * matrix[1, 1] - (matrix[0, 1] * matrix[1, 0]);
+        }
+
+        if (n == 1)
+        {
+            return matrix[0, 0];
+        }
+
+        List<Task<Frac32>> tasks = new List<Task<Frac32>>();
+        for (int j = 0; j < n; j++)
+        {
+            int column = j;
+            Frac32[,] minor = GetMinor(matrix, 0, column);
+            tasks.Add(Task.Run(() =>
+                new Frac32(Math.Pow(-1, column)) * matrix[0, column] * DeterminantFrac32Async(minor)));
+        }
+
+        Frac32[] results = Task.WhenAll(tasks).Result;
+        return SumResults(results);
     }
     /// <summary>
     /// Асинхронно считает определитель матрицы
@@ -61,9 +71,9 @@ public static class Matrix
     /// </summary>
     /// <param name="matrix"></param>
     /// <returns></returns>
-    public static async Task<double> DeterminantI32Async(int[,] matrix)
+    public static async Task<double> DeterminantFrac32Async(int[,] matrix)
     {
-        double det = await Task.Run(() => DeterminantI32(matrix));
+        double det = await Task.Run(() => DeterminantFrac32Async(matrix));
         return det;
     }
     /// <summary>
@@ -95,10 +105,38 @@ public static class Matrix
         return results.Sum();
     }
 
+    private static Frac32 SumResults(Frac32[] results)
+    {
+        Frac32 num1 = Frac32.Zero;
+        foreach (Frac32 num2 in results)
+            num1 += num2;
+        
+        num1.Clear();
+        return num1;
+    }
+    
     private static double[,] GetMinor(double[,] matrix, int row, int column)
     {
         int n = matrix.GetLength(0);
         double[,] minor = new double[n - 1, n - 1];
+        for (int i = 0, ii = 0; i < n; i++)
+        {
+            if (i == row) continue;
+            for (int j = 0, jj = 0; j < n; j++)
+            {
+                if (j == column) continue;
+                minor[ii, jj] = matrix[i, j];
+                jj++;
+            }
+            ii++;
+        }
+        return minor;
+    }
+    
+    private static Frac32[,] GetMinor(Frac32[,] matrix, int row, int column)
+    {
+        int n = matrix.GetLength(0);
+        Frac32[,] minor = new Frac32[n - 1, n - 1];
         for (int i = 0, ii = 0; i < n; i++)
         {
             if (i == row) continue;

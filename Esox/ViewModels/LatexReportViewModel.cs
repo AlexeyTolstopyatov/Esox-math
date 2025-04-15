@@ -1,4 +1,6 @@
-﻿namespace Esox.ViewModels;
+﻿using Esox.Models;
+
+namespace Esox.ViewModels;
 
 public class LatexReportViewModel : NotifyPropertyChanged
 {
@@ -6,15 +8,22 @@ public class LatexReportViewModel : NotifyPropertyChanged
     public LatexReportViewModel() { }
     #pragma warning restore
     
-    public LatexReportViewModel(string mainSystemFormula, string computesFormulas)
+    public LatexReportViewModel(CommonMethodComputingModel model)
     {
-        _computesFormulas = computesFormulas;
-        _mainSystemFormula = mainSystemFormula;
+        _mainSystemFormula = model.MainSystemFormula!;
+        _computesFormulas = model.MainSystemSolutionFormula!;
+        MainSystemExtendedMatrix = model.MainSystemExtendedMatrix!;
     }
     
     private string _computesFormulas;
     private string _mainSystemFormula;
 
+    public string MainSystemExtendedMatrix
+    {
+        get;
+        private set;
+    }
+    
     public string ComputesFormulas
     {
         get => _computesFormulas;

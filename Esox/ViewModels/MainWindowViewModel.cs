@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Reflection;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Esox.Services;
@@ -15,6 +17,22 @@ public class MainWindowViewModel : NotifyPropertyChanged
         _generatorTypeMode = LinearCastingGeneratorType.Triangle;
         _makeCommand = new ActionCommand(Make);
         _fromLatexCommand = new ActionCommand(FromLatex);
+        _saveLatexCommand = new ActionCommand(Save);
+
+        _visibility = Visibility.Hidden;
+        _computesPage = new Page();
+        _aboutMessage = string.Empty;
+        _versionMessage = string.Empty;
+        _aboutMessage = string.Empty;
+        _latexFormula = string.Empty;
+        _environmentHelpMessage = string.Empty;
+        _environmentHelpMessage = string.Empty;
+        
+        InitializeTextBlocks();
+    }
+
+    private void InitializeTextBlocks()
+    {
         _environmentHelpMessage = @"Используйте 'pmatrix' окружение для обозначения матрицы. 
 1) Указывайте '\begin{pmatrix}' и '\end{pmatrix}' области использования или используйте
 сокращение встренное в ПО: 
@@ -26,9 +44,12 @@ public class MainWindowViewModel : NotifyPropertyChanged
 3) Формула должна содержать только цело-численные значения или значения в виде обыкновенных дробей
 
 Если вместо формулы вы видите красную полосу - скорее всего, формула содержит ошибки.";
-        _visibility = Visibility.Hidden;
-        _computesPage = new Page();
-        _latexFormula = @"\pmatrix{2 & 3 & 3 \\ 2 & 1 & 0}";
+        _aboutMessage = @"Esox генерирует и решает системы линейных алгебраических уравнений порядка от 2 до 10. Поддерживает системные цвета, если операционная система - Windows 10 и выше.";
+        _latexFormula = @"\begin{pmatrix}
+2 & 3 & 3 \\ 
+2 & 1 & 0
+\end{pmatrix}";
+        _versionMessage = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion!;
     }
     
     #region Private Fields
@@ -57,8 +78,22 @@ public class MainWindowViewModel : NotifyPropertyChanged
     // Левая панель -> Создание своей системы уравнений
     private string _latexFormula;
     private string _environmentHelpMessage;
-
+    // Левая панель -> About
+    private string _aboutMessage;
+    private string _versionMessage;
+    
     #region View Bingings
+    public string AboutMessage
+    {
+        get => _aboutMessage;
+        set => SetField(ref _aboutMessage, value);
+    }
+
+    public string VersionMessage
+    {
+        get => _versionMessage;
+        set => SetField(ref _versionMessage, value);
+    }
     public string EnvironmentHelpMessage
     {
         get => _environmentHelpMessage;
@@ -89,6 +124,14 @@ public class MainWindowViewModel : NotifyPropertyChanged
         get => _kramerMethodFlag;
         set => SetField(ref _kramerMethodFlag, value);
     }
+
+    /// <summary>
+    /// Если хоть раз была создана страница решения,
+    /// модель данных не может быть пустой
+    /// </summary>
+    public bool ModelNotNull => 
+        ComputesPage is LatexReportView;
+
     /// <summary>
     /// Разрешает использовать флаг
     /// единственного решения.
@@ -186,6 +229,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
 
     private ICommand _makeCommand;
     private ICommand _fromLatexCommand;
+    private ICommand _saveLatexCommand;
     
     #endregion
 
@@ -200,6 +244,12 @@ public class MainWindowViewModel : NotifyPropertyChanged
         get => _fromLatexCommand;
         set => SetField(ref _fromLatexCommand, value);
     }
+
+    public ICommand SaveLatexCommand
+    {
+        get => _saveLatexCommand;
+        set => SetField(ref _saveLatexCommand, value);
+    }
     #endregion
 
     private void FromLatex()
@@ -210,8 +260,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
         ComputesPage = new LatexReportView // Null-Reference conflict
         {
             DataContext = new LatexReportViewModel(
-                method.Model!.MainSystemFormula!,
-                method.Model.MainSystemSolutionFormula!)
+                method.Model!)
         };
         
         Visibility = Visibility.Visible;
@@ -232,11 +281,21 @@ public class MainWindowViewModel : NotifyPropertyChanged
 
         ComputesPage = new LatexReportView
         {
-            DataContext = new LatexReportViewModel(
-                method.Model!.MainSystemFormula!,
-                method.Model.MainSystemSolutionFormula!)
+            DataContext = new LatexReportViewModel(method.Model!)
         };
         
         Visibility = Visibility.Visible;
+    }
+
+    private void Save()
+    {
+        if (ComputesPage is LatexReportView { DataContext: LatexReportViewModel vm })
+        {
+            LatexFormula = vm.MainSystemExtendedMatrix;
+            _ = LatexFormula.Insert(0, " ");
+            _ = LatexFormula.Insert(1, " ");
+            _ = LatexFormula.Insert(2, " ");
+            _ = LatexFormula.Insert(3, " ");
+        }
     }
 }

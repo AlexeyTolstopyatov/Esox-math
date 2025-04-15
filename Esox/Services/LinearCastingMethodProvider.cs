@@ -102,6 +102,7 @@ public class LinearCastingMethodProvider : IProvider
         _writer = new();
         _generator = new(0);
         _model = new CommonMethodComputingModel();
+        
         _ = FindAsync(extendedMatrix);
     }
 
@@ -109,6 +110,7 @@ public class LinearCastingMethodProvider : IProvider
     {
         // очень плохая идея, но...
         FromExtendedMatrix(ref extendedMatrix, out Frac32[,] matrix, out Frac32[] vector);
+        
         await WriteSystemToStringAsync((matrix, vector));
         await WriteSolutionToStringAsync(_writer.MakePMatrix(matrix, vector));
         
@@ -145,7 +147,11 @@ public class LinearCastingMethodProvider : IProvider
         
         FindSolutions(vectors.matrix, vectors.vector);
     }
-    
+
+    private void WriteExtendedMatrix(in Frac32[,] extendedMatrix)
+    {
+        _model!.MainSystemExtendedMatrix = _writer.MakePMatrix(extendedMatrix, "");
+    }
     /// <summary>
     /// Разделяет расширенную матрицу на основную матрицу и вектор свободных членов.
     /// </summary>
@@ -412,6 +418,8 @@ public class LinearCastingMethodProvider : IProvider
             }
             extendedMatrix[i, cols] = freeTerms[i];
         }
+        
+        WriteExtendedMatrix(in extendedMatrix);
         
         // 2. Прямой ход
         for (int i = 0; i < rows; i++)
