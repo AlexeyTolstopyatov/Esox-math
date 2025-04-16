@@ -102,7 +102,7 @@ public class LinearCastingMethodProvider : IProvider
         _writer = new();
         _generator = new(0);
         _model = new CommonMethodComputingModel();
-        
+        _ordinal = extendedMatrix.GetLength(0);
         _ = FindAsync(extendedMatrix);
     }
 

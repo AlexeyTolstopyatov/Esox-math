@@ -6,11 +6,11 @@ Esox генерирует и решает системы линейных алг
 ### Снимки экрана
 Акцент и темная тема:
 
-<img src="Screenshots/kramer dark.png" height="300" width="400">
+<img src="Screenshots/dark.png" height="300" width="400">
 
 Акцент и светлая тема
 
-<img src="Screenshots/kramer white.png" height="300" width="400">
+<img src="Screenshots/white.png" height="300" width="400">
 
 ### [Описание алгоритмов](INSIDE.md)
 Постепенно будет описываться в [здесь](INSIDE.md), или переедет в новый каталог
