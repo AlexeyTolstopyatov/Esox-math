@@ -72,4 +72,14 @@ public static class LaTeXFrac32Reader
         }
         return true;
     }
+
+    public static Task<Frac32[,]> RevertMatrixAsync(Frac32[,] matrix)
+    {
+        
+    }
+    
+    public static Task<string> ParseMatrixAsync()
+    {
+        
+    }
 }

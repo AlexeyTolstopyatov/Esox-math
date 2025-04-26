@@ -18,21 +18,27 @@
     <i:Interaction.Triggers>
         <i:KeyTrigger
             Key="S"
-            Modifiers="Shift">
+            Modifiers="Control">
             <i:InvokeCommandAction
                 Command="{Binding SaveLatexCommand}"/>
         </i:KeyTrigger>
         <i:KeyTrigger
-            Key="T"
+            Key="B"
             Modifiers="Control">
             <i:InvokeCommandAction
                 Command="{Binding MakeCommand}"/>
         </i:KeyTrigger>
         <i:KeyTrigger
-            Key="S"
+            Key="L"
             Modifiers="Control">
             <i:InvokeCommandAction
                 Command="{Binding FromLatexCommand}"/>
+        </i:KeyTrigger>
+        <i:KeyTrigger
+            Key="T"
+            Modifiers="Control">
+            <i:InvokeCommandAction
+                Command="{Binding}"/>
         </i:KeyTrigger>
     </i:Interaction.Triggers>
     <Grid>
@@ -50,7 +56,7 @@
             <hc:ScrollViewer>
                 <StackPanel>
                     <Expander
-                        IsExpanded="True"
+                        IsExpanded="False"
                         Margin="10"
                         Header="Новая система уравнений">
                         <StackPanel 
@@ -247,8 +253,8 @@
                     <!--Установка СЛАУ внутри окна-->
                     </Expander>
                     <Expander
-                        IsExpanded="False"
-                        Header="О программе"
+                        IsExpanded="True"
+                        Header="Справка"
                         Margin="10,0,10,10">
                         <StackPanel
                             Margin="20">
@@ -268,6 +274,17 @@
                                 <Run Text="Версия:"/>
                                 <Run Text="{Binding VersionMessage}"/>
                                 <LineBreak/>
+                            </TextBlock>
+                            <TextBlock
+                                TextWrapping="Wrap"
+                                Margin="0,10,0,0">
+                                <Run Text="[Ctrl+T] - Транспонировать матрицу системы"/>
+                                <LineBreak/>
+                                <Run Text="[Ctrl+S] - Сохранить матрицу системы"/>
+                                <LineBreak/>
+                                <Run Text="[Ctrl+B] - Решить созданную матрицу системы"/>
+                                <LineBreak/>
+                                <Run Text="[Ctrl+L] - Решить матрицу системы из LaTeX"/>
                             </TextBlock>
                         </StackPanel>
                     </Expander>

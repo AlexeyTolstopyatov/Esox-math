@@ -292,10 +292,21 @@ public class MainWindowViewModel : NotifyPropertyChanged
         if (ComputesPage is LatexReportView { DataContext: LatexReportViewModel vm })
         {
             LatexFormula = vm.MainSystemExtendedMatrix;
-            _ = LatexFormula.Insert(0, " ");
-            _ = LatexFormula.Insert(1, " ");
-            _ = LatexFormula.Insert(2, " ");
-            _ = LatexFormula.Insert(3, " ");
         }
+    }
+
+    private void Revert()
+    {
+        if (LatexFormula.Length == 0)
+            return;
+        
+        IProvider method = MethodFactory
+            .MakeMethodProvider(LaTeXFrac32Reader.ParseLatexMatrixAsync(LatexFormula).Result);
+        
+        ComputesPage = new LatexReportView // Null-Reference conflict
+        {
+            DataContext = new LatexReportViewModel(
+                method.Model!)
+        };
     }
 }
