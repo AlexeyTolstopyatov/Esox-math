@@ -16,15 +16,13 @@ public static class LaTeXFrac32Reader
             .Where(x => !string.IsNullOrEmpty(x))
             .ToArray();
             
-        Console.WriteLine("Regex step done");
-            
         if (rows.Length == 0)
             throw new ArgumentException("Invalid matrix format");
 
         // Разбиваем строки на элементы
         var elements = rows.Select(row => 
-                Regex.Split(row, @"(?<!\\)&") // Игнорируем экранированные &
-                    .Select(x => x.Replace(@"\&", "&")) // Восстанавливаем &
+                Regex.Split(row, @"(?<!\\)&") 
+                    .Select(x => x.Replace(@"\&", "&"))
                     .ToArray())
             .ToList();
 
@@ -47,7 +45,6 @@ public static class LaTeXFrac32Reader
             {
                 if (!TryParseLatexNumber(elements[i][j], out matrix[i, j]))
                     throw new FormatException($"Invalid number format: {elements[i][j]}");
-                Console.WriteLine($"step [{i}, {j}]");
             }
         }
 
@@ -71,15 +68,5 @@ public static class LaTeXFrac32Reader
             result = new Frac32(int.Parse(input));
         }
         return true;
-    }
-
-    public static Task<Frac32[,]> RevertMatrixAsync(Frac32[,] matrix)
-    {
-        
-    }
-    
-    public static Task<string> ParseMatrixAsync()
-    {
-        
     }
 }

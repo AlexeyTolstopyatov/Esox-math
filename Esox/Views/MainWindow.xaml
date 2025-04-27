@@ -40,6 +40,12 @@
             <i:InvokeCommandAction
                 Command="{Binding}"/>
         </i:KeyTrigger>
+        <i:KeyTrigger
+            Key="H"
+            Modifiers="Control">
+            <i:InvokeCommandAction
+                Command="{Binding HelpCommand}"/>
+        </i:KeyTrigger>
     </i:Interaction.Triggers>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -310,6 +316,8 @@
                     Background="{DynamicResource RegionBrush}">
                     <!-- Разделы области вывода -->
                     <Frame
+                        NavigationUIVisibility="{Binding NavigationVisibility}"
+                        BorderBrush="{DynamicResource RegionBrush}"
                         Content="{Binding ComputesPage}"/>
                 </ScrollViewer>
             </hc:Card>

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,6 +19,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
         _makeCommand = new ActionCommand(Make);
         _fromLatexCommand = new ActionCommand(FromLatex);
         _saveLatexCommand = new ActionCommand(Save);
+        _helpCommand = new ActionCommand(Help);
 
         _visibility = Visibility.Hidden;
         _computesPage = new Page();
@@ -54,6 +56,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
     
     #region Private Fields
     // Основная панель -> дополнительная информация
+    private Visibility _navigationVisibility;
     private Visibility _visibility;
     private Page? _computesPage;
 
@@ -209,6 +212,12 @@ public class MainWindowViewModel : NotifyPropertyChanged
         get => _visibility;
         set => SetField(ref _visibility, value);
     }
+
+    public Visibility NavigationVisibility
+    {
+        get => _visibility;
+        set => SetField(ref _navigationVisibility, value);
+    }
     /// <summary>
     /// Порядок квадратной матрицы системы
     /// </summary>
@@ -230,6 +239,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
     private ICommand _makeCommand;
     private ICommand _fromLatexCommand;
     private ICommand _saveLatexCommand;
+    private ICommand _helpCommand;
     
     #endregion
 
@@ -250,6 +260,12 @@ public class MainWindowViewModel : NotifyPropertyChanged
         get => _saveLatexCommand;
         set => SetField(ref _saveLatexCommand, value);
     }
+
+    public ICommand HelpCommand
+    {
+        get => _helpCommand;
+        set => SetField(ref _helpCommand, value);
+    }
     #endregion
 
     private void FromLatex()
@@ -262,7 +278,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
             DataContext = new LatexReportViewModel(
                 method.Model!)
         };
-        
+        NavigationVisibility = Visibility.Visible;
         Visibility = Visibility.Visible;
     }
     private void Make()
@@ -283,7 +299,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
         {
             DataContext = new LatexReportViewModel(method.Model!)
         };
-        
+        NavigationVisibility = Visibility.Visible;
         Visibility = Visibility.Visible;
     }
 
@@ -308,5 +324,16 @@ public class MainWindowViewModel : NotifyPropertyChanged
             DataContext = new LatexReportViewModel(
                 method.Model!)
         };
+    }
+
+    private void Help()
+    {
+        NavigationVisibility = Visibility.Hidden;
+        
+        ComputesPage = new TheoryView()
+        {
+            DataContext = new TheoryViewModel()
+        };
+        Visibility = Visibility.Visible;
     }
 }
