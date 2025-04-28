@@ -114,6 +114,8 @@ public class LinearCastingMethodProvider : IProvider
         await WriteSystemToStringAsync((matrix, vector));
         await WriteSolutionToStringAsync(_writer.MakePMatrix(matrix, vector));
         
+        SingleObjectOperationsMethodProvider provider = new(extendedMatrix);
+        
         FindSolutions(matrix, vector);
     }
     /// <summary>
@@ -144,6 +146,9 @@ public class LinearCastingMethodProvider : IProvider
         
         await WriteSystemToStringAsync(vectors);
         await WriteSolutionToStringAsync(_writer.MakePMatrix(vectors.matrix, vectors.vector));
+        
+        SingleObjectOperationsMethodProvider provider = new(vectors.matrix);
+        await WriteSolutionToStringAsync(provider.Model!.MainSystemSolutionFormula!);
         
         FindSolutions(vectors.matrix, vectors.vector);
     }

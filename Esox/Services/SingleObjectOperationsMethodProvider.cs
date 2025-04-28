@@ -23,6 +23,11 @@ public class SingleObjectOperationsMethodProvider : IProvider
         
         _ = InitializeSolution();
     }
+    
+    protected SingleObjectOperationsMethodProvider()
+    {
+        
+    }
 
     private void WriteSolutionString(string text)
     {
@@ -43,7 +48,7 @@ public class SingleObjectOperationsMethodProvider : IProvider
     /// (Важно помнить то, что ядро присуще любой матрицы 
     /// </summary>
     /// <param name="matrix">требуемая матрица системы</param>
-    private void FindNullSpace(Frac32[,] matrix)
+    public void FindNullSpace(Frac32[,] matrix)
     {
         int n = matrix.GetLength(0);
         Frac32[,] extended = new Frac32[n, n + 1];
