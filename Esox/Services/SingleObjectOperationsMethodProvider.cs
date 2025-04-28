@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Esox.Models;
 using Esox.Types;
@@ -11,24 +10,18 @@ namespace Esox.Services;
 public class SingleObjectOperationsMethodProvider : IProvider
 {
     public CommonMethodComputingModel? Model { get; }
-    private LaTeXFrac32Markup _writer;
+    private LatexBuilder _writer;
     private Frac32[,] _data;
     public SingleObjectOperationsMethodProvider(Frac32[,] data)
     {
         Model = new CommonMethodComputingModel();
-        _writer = new LaTeXFrac32Markup();
+        _writer = new LatexBuilder();
         Model.MainSystemExtendedMatrix = _writer.MakePMatrix(data);
         Model.MainSystemFormula = _writer.MakePMatrix(data);
         _data = data;
         
         _ = InitializeSolution();
     }
-    
-    protected SingleObjectOperationsMethodProvider()
-    {
-        
-    }
-
     private void WriteSolutionString(string text)
     {
         Model!.MainSystemSolutionFormula += (text + @"\\");
@@ -48,7 +41,7 @@ public class SingleObjectOperationsMethodProvider : IProvider
     /// (Важно помнить то, что ядро присуще любой матрицы 
     /// </summary>
     /// <param name="matrix">требуемая матрица системы</param>
-    public void FindNullSpace(Frac32[,] matrix)
+    private void FindNullSpace(Frac32[,] matrix)
     {
         int n = matrix.GetLength(0);
         Frac32[,] extended = new Frac32[n, n + 1];
@@ -131,7 +124,7 @@ public class SingleObjectOperationsMethodProvider : IProvider
                 "";
         }
         __writeAndExit:
-        solution += ", \\alpha_{n} \\in R";
+        solution += $", \\overline{{\\alpha_{{1}}...\\alpha_{{{nullSpace.Count}}} }} \\in R";
         WriteSolutionString(solution);
     }
 

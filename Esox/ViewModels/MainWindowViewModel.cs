@@ -7,6 +7,7 @@ using System.Windows.Input;
 using Esox.Services;
 using Esox.Views;
 using Microsoft.Xaml.Behaviors.Core;
+using MessageBox = HandyControl.Controls.MessageBox;
 
 namespace Esox.ViewModels;
 
@@ -19,8 +20,8 @@ public class MainWindowViewModel : NotifyPropertyChanged
         _fromLatexCommand = new ActionCommand(FromLatex);
         _saveLatexCommand = new ActionCommand(Save);
         _helpCommand = new ActionCommand(Help);
-
-        _computesPage = new Page();
+        _transposeCommand = new ActionCommand(Transpose);
+        _replaceMacroCommand = new ActionCommand(ReplaceMacro);
         _aboutMessage = string.Empty;
         _versionMessage = string.Empty;
         _aboutMessage = string.Empty;
@@ -30,7 +31,7 @@ public class MainWindowViewModel : NotifyPropertyChanged
         
         InitializeTextBlocks();
     }
-
+    
     private void InitializeTextBlocks()
     {
         ComputesPage = new TheoryView()
@@ -239,15 +240,26 @@ public class MainWindowViewModel : NotifyPropertyChanged
     #endregion
 
     #region Pirvate Command storage
-
     private ICommand _makeCommand;
     private ICommand _fromLatexCommand;
     private ICommand _saveLatexCommand;
     private ICommand _helpCommand;
-    
+    private ICommand _transposeCommand;
+    private ICommand _replaceMacroCommand;
     #endregion
 
     #region View Command-Bindings
+
+    public ICommand ReplaceMacroCommand
+    {
+        get => _replaceMacroCommand;
+        set => SetField(ref _replaceMacroCommand, value);
+    }
+    public ICommand TransposeCommand
+    {
+        get => _transposeCommand;
+        set => SetField(ref _transposeCommand, value);
+    }
     public ICommand MakeCommand
     {
         get => _makeCommand;
@@ -274,14 +286,22 @@ public class MainWindowViewModel : NotifyPropertyChanged
 
     private void FromLatex()
     {
-        IProvider method = MethodFactory
-            .MakeMethodProvider(LaTeXFrac32Reader.ParseLatexMatrixAsync(LatexFormula).Result);
-        
-        ComputesPage = new LatexReportView // Null-Reference conflict
+        try
         {
-            DataContext = new LatexReportViewModel(
-                method.Model!)
-        };
+            IProvider method = MethodFactory
+                .MakeMethodProvider(LatexReader.ParseLatexMatrixAsync(LatexFormula).Result);
+
+            ComputesPage = new LatexReportView
+            {
+                DataContext = new LatexReportViewModel(
+                    method.Model!)
+            };
+        }
+        catch (Exception e)
+        {
+            MessageBox.Warning(e.Message);
+        }
+        
         NavigationVisibility = Visibility.Visible;
         Visibility = Visibility.Visible;
     }
@@ -315,28 +335,23 @@ public class MainWindowViewModel : NotifyPropertyChanged
         }
     }
 
-    private void Revert()
+    private void ReplaceMacro()
     {
-        if (LatexFormula.Length == 0)
-            return;
-        
-        IProvider method = MethodFactory
-            .MakeMethodProvider(LaTeXFrac32Reader.ParseLatexMatrixAsync(LatexFormula).Result);
-        
-        ComputesPage = new LatexReportView // Null-Reference conflict
-        {
-            DataContext = new LatexReportViewModel(
-                method.Model!)
-        };
+        LatexFormula = LatexReader.ReplaceMacro(LatexFormula);
     }
-
+    private void Transpose()
+    {
+        // matrix transposition [Ctrl + T]
+        LatexFormula = LatexReader.TransposeLatexMatrix(LatexFormula);
+    }
+    
     private void Help()
     {
         NavigationVisibility = Visibility.Hidden;
         
-        ComputesPage = new TheoryView()
+        ComputesPage = new KeyBindingsView()
         {
-            DataContext = new TheoryViewModel()
+            DataContext = new KeyBindingsViewModel()
         };
         Visibility = Visibility.Visible;
     }

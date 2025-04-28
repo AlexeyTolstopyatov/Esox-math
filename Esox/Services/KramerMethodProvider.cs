@@ -12,7 +12,7 @@ public class KramerMethodProvider : IProvider
 {
     private readonly int _ordinal;
     private readonly List<FracF64> _determinantCollection;
-    private readonly LaTeXF64Markup _writer;
+    private readonly LatexBuilderF64 _writer;
 
     // public KramerMethodProvider(double[,] common, double[] freed)
     // {

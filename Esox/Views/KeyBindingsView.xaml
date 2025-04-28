@@ -1,0 +1,119 @@
+﻿<Page x:Class="Esox.Views.KeyBindingsView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:local="clr-namespace:Esox.ViewModels"
+      xmlns:fc="clr-namespace:WpfMath.Controls;assembly=WpfMath"
+      mc:Ignorable="d"
+      Background="{StaticResource RegionBrush}"
+      Title="KeyBindingsView" 
+      Height="Auto" Width="Auto">
+    <Page.DataContext>
+        <local:KeyBindingsViewModel/>
+    </Page.DataContext>
+    <Grid>
+        <StackPanel
+            Margin="20">
+            <!--Сборка матрицы-->
+            <TextBlock
+                Foreground="{StaticResource PrimaryTextBrush}"
+                FontSize="21"
+                TextWrapping="WrapWithOverflow">
+                <Run Text="Сборка матрицы"/>
+                <Run
+                    FontFamily="Consolas" 
+                    Text="[Ctrl+B]"/>
+                <Run Text="Build"/>
+            </TextBlock>
+            <TextBlock
+                FontSize="16"
+                Foreground="{StaticResource PrimaryTextBrush}"
+                TextWrapping="WrapWithOverflow"
+                Margin="0,10,0,10"
+                Text="{Binding Model.Building}"/>
+            
+            <!--Загрузка матрицы-->
+            <TextBlock
+                FontSize="21"
+                Foreground="{StaticResource PrimaryTextBrush}"
+                TextWrapping="WrapWithOverflow">
+                <Run Text="Загрузка матрицы"/>
+                <Run
+                    FontFamily="Consolas" 
+                    Text="[Ctrl+L]"/>
+                <Run Text="Load"/>
+            </TextBlock>
+            <TextBlock
+                FontSize="16"
+                Margin="0,10,0,10"
+                Foreground="{StaticResource PrimaryTextBrush}"
+                TextWrapping="WrapWithOverflow"
+                Text="{Binding Model.Loading}"/>
+            
+            <!--Сохранение матрицы-->
+            <TextBlock
+                FontSize="21"
+                Foreground="{StaticResource PrimaryTextBrush}"
+                TextWrapping="WrapWithOverflow">
+                <Run Text="Сохранение матрицы"/>
+                <Run
+                    FontFamily="Consolas" 
+                    Text="[Ctrl+S]"/>
+                <Run Text="Save"/>
+            </TextBlock>
+            <TextBlock
+                FontSize="16"
+                Foreground="{StaticResource PrimaryTextBrush}"
+                Margin="0,10,0,10"
+                TextWrapping="WrapWithOverflow"
+                Text="{Binding Model.Saving}"/>
+            <fc:FormulaControl
+                Background="{StaticResource PrimaryTextBrush}"
+                Formula=""/>
+
+            <!--Транспозиция матрицы-->
+            <TextBlock
+                Foreground="{StaticResource PrimaryTextBrush}"
+                FontSize="21"
+                TextWrapping="WrapWithOverflow">
+                <Run Text="Транспонирование матрицы"/>
+                <Run
+                    FontFamily="Consolas" 
+                    Text="[Ctrl+T]"/>
+                <Run Text="Transposition"/>
+            </TextBlock>
+            <TextBlock
+                FontSize="16"
+                Foreground="{StaticResource PrimaryTextBrush}"
+                TextWrapping="WrapWithOverflow"
+                Margin="0,10,0,10"
+                Text="{Binding Model.Transposition}"/>
+            <fc:FormulaControl
+                Foreground="{StaticResource PrimaryTextBrush}"
+                Formula="{Binding Model.TranspositionFormula}"/>
+
+            <!--Замена макросов обыкновенных дробей-->
+            <TextBlock
+                Margin="0,10,0,0"
+                Foreground="{StaticResource PrimaryTextBrush}"
+                FontSize="21"
+                TextWrapping="WrapWithOverflow">
+                <Run Text="Найти и заменить макросы дроби"/>
+                <Run
+                    FontFamily="Consolas" 
+                    Text="[Ctrl+F]"/>
+                <Run Text="Find"/>
+            </TextBlock>
+            <TextBlock
+                FontSize="16"
+                Foreground="{StaticResource PrimaryTextBrush}"
+                TextWrapping="WrapWithOverflow"
+                Margin="0,10,0,0"
+                Text="{Binding Model.Replacement}"/>
+            <fc:FormulaControl
+                Foreground="{StaticResource PrimaryTextBrush}"
+                Formula="{Binding Model.ReplacementFormula}"/>
+        </StackPanel>
+    </Grid>
+</Page>

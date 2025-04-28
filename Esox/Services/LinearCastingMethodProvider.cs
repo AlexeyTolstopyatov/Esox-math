@@ -40,7 +40,7 @@ public enum LinearCastingGeneratorType
 public class LinearCastingMethodProvider : IProvider
 {
     private readonly CommonMethodComputingModel? _model;
-    private readonly LaTeXFrac32Markup _writer;
+    private readonly LatexBuilder _writer;
     private readonly MatrixGenerator _generator;
     private readonly LinearCastingGeneratorType _generatorType;
     private readonly int _ordinal;
@@ -114,9 +114,10 @@ public class LinearCastingMethodProvider : IProvider
         await WriteSystemToStringAsync((matrix, vector));
         await WriteSolutionToStringAsync(_writer.MakePMatrix(matrix, vector));
         
-        SingleObjectOperationsMethodProvider provider = new(extendedMatrix);
-        
         FindSolutions(matrix, vector);
+        
+        SingleObjectOperationsMethodProvider provider = new(extendedMatrix);
+        await WriteSolutionToStringAsync(provider.Model!.MainSystemSolutionFormula!);
     }
     /// <summary>
     /// Точка входа внутри провайдера.
@@ -147,10 +148,10 @@ public class LinearCastingMethodProvider : IProvider
         await WriteSystemToStringAsync(vectors);
         await WriteSolutionToStringAsync(_writer.MakePMatrix(vectors.matrix, vectors.vector));
         
+        FindSolutions(vectors.matrix, vectors.vector);
+        
         SingleObjectOperationsMethodProvider provider = new(vectors.matrix);
         await WriteSolutionToStringAsync(provider.Model!.MainSystemSolutionFormula!);
-        
-        FindSolutions(vectors.matrix, vectors.vector);
     }
 
     private void WriteExtendedMatrix(in Frac32[,] extendedMatrix)
@@ -326,6 +327,7 @@ public class LinearCastingMethodProvider : IProvider
                 }
                 if (rowIndex != -1)
                 {
+                    freed[rowIndex].Clear();
                     particularSolution[i] = freed[rowIndex];
                 }
                 else
@@ -368,6 +370,7 @@ public class LinearCastingMethodProvider : IProvider
                     foreach (var freeParameter in parameters.freeParameters)
                     {
                         solution[basisVarIndex] -= matrix[rowIndex, freeParameter] * Frac32.Positive;
+                        solution[basisVarIndex].Clear();
                     }
                 }
                 else
@@ -378,22 +381,33 @@ public class LinearCastingMethodProvider : IProvider
             fsr.Add(solution);
         }
         
-        // Собрана Фундаментальная совокупность решений...
-        // solution = [[\frac, \frac, 1, 0], [\frac, \frac, 0, 1]]
-        Frac32[,] fundament = new Frac32[baseParametersCount, _ordinal];
-
-        for (int i = 0; i < baseParametersCount; i++)
+        if (fsr.Count == 0)
         {
-            for (int j = 0; j < _ordinal; j++)
-            {
-                fundament[i, j] = fsr
-                    .ElementAt(i)
-                    .ElementAt(j);
-            }
+            // ядро тривиально.
+            WriteSolutionToStringAsync($@"nullity({_writer.Name}) = 0 \Rightarrow \ker({_writer.Name}) = \vec{{0}}");
+            return;
         }
-
+        
+        string solutionString =
+            $"Fnd({_writer.Name}) = \\beta_{1} \\cdot" +
+            _writer.MakePVectorColumn(fsr.ElementAt(0)) + "^T";
+        
+        if (fsr.Count == 1)
+            goto __writeAndExit;
+        
+        for (int i = 1; i < fsr.Count; ++i)
+        {
+            solutionString +=
+                $"+ \\beta_{{{i + 1}}} \\cdot" +
+                _writer.MakePVectorColumn(fsr.ElementAt(i)) + "^T" +
+                "";
+        }
+        __writeAndExit:
+        solutionString += $", \\overline{{\\beta_{{1}}...\\beta_{{{fsr.Count}}} }} \\in R";
+        
         WriteSolutionToStringAsync(_writer.MakeText($"Нормальная-Фундаментальная совокупность решений системы"));
-        WriteSolutionToStringAsync(_writer.MakePMatrix(fundament, $"{_writer.Name}_{{fnd}}"));
+        WriteSolutionToStringAsync(solutionString);
+        
         WriteSolutionToStringAsync($"{_writer.Name}_{{part}} = " + 
                                    _writer.MakePVectorColumn(particularSolution));
     }
