@@ -291,6 +291,8 @@
                                 <Run Text="[Ctrl+B] - Решить созданную матрицу системы"/>
                                 <LineBreak/>
                                 <Run Text="[Ctrl+L] - Решить матрицу системы из LaTeX"/>
+                                <LineBreak/>
+                                <Run Text="[Ctrl+H] - Страница условных обозначений"/>
                             </TextBlock>
                         </StackPanel>
                     </Expander>
@@ -307,9 +309,9 @@
 
             <!-- Область вывода -->
             <hc:Card
+                Grid.Row="1"
                 BorderBrush="{DynamicResource RegionBrush}"
-                Grid.Row="1" 
-                Margin="10,30,30,30">
+                Margin="10,10,30,30">
                 <ScrollViewer
                     Visibility="{Binding Visibility}"
                     BorderBrush="{DynamicResource RegionBrush}"

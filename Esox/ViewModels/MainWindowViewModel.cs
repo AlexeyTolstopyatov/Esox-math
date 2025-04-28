@@ -14,14 +14,12 @@ public class MainWindowViewModel : NotifyPropertyChanged
 {
     public MainWindowViewModel()
     {
-        _visibility = Visibility.Hidden;
         _generatorTypeMode = LinearCastingGeneratorType.Triangle;
         _makeCommand = new ActionCommand(Make);
         _fromLatexCommand = new ActionCommand(FromLatex);
         _saveLatexCommand = new ActionCommand(Save);
         _helpCommand = new ActionCommand(Help);
 
-        _visibility = Visibility.Hidden;
         _computesPage = new Page();
         _aboutMessage = string.Empty;
         _versionMessage = string.Empty;
@@ -35,6 +33,10 @@ public class MainWindowViewModel : NotifyPropertyChanged
 
     private void InitializeTextBlocks()
     {
+        ComputesPage = new TheoryView()
+        {
+            DataContext = new TheoryViewModel()
+        };
         _environmentHelpMessage = @"Используйте 'pmatrix' окружение для обозначения матрицы. 
 1) Указывайте '\begin{pmatrix}' и '\end{pmatrix}' области использования или используйте
 сокращение встренное в ПО: 
@@ -78,9 +80,11 @@ public class MainWindowViewModel : NotifyPropertyChanged
     private int _mainSystemRequiredRank;
     
     #endregion
+    
     // Левая панель -> Создание своей системы уравнений
     private string _latexFormula;
     private string _environmentHelpMessage;
+    
     // Левая панель -> About
     private string _aboutMessage;
     private string _versionMessage;
