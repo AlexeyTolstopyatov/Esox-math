@@ -1,18 +1,18 @@
+<img src="Screenshots/main.png">
+
 # Esox-math
+
+<img src="logo.png" 
+    height="128" 
+    wigth="128"
+    align="left"
+    margin="10">
+
 Esox генерирует и решает системы линейных алгебраических
 уравнений любого порядка (от 2 до 20). Поддерживает
 системные цвета, если операционная система - Windows 10 и выше.
 
-Скачать для [Windows (IA32e)](https://github.com/AlexeyTolstopyatov/Esox-math/releases/download/v1.2.0.0/esox-windows-1.2.0.0.zip).
-
-### Снимки экрана
-Акцент и темная тема:
-
-<img src="Screenshots/dark.png" height="300" width="400">
-
-Акцент и светлая тема
-
-<img src="Screenshots/white.png" height="300" width="400">
+Скачать для [Windows (IA32e)](https://github.com/AlexeyTolstopyatov/Esox-math/releases/download/v1.3.0.0/esox-windows-1.3.0.0.zip).
 
 ### [Описание алгоритмов](INSIDE.md)
 Постепенно будет описываться в [здесь](INSIDE.md), или переедет в новый каталог
